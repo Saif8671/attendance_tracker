@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — Scan QR</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07070d;--surface:#0f0f1a;--card:#131320;--border:#1a1a2e;--accent:#f7b731;--text:#e0e0f0;--muted:#5a5a72;--green:#2ecc71;--red:#e74c3c}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex}
+.sidebar{width:230px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;min-height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:28px}
+.brand-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#e67e22);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.brand h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:800}
+.brand-role{font-size:10px;color:var(--accent);background:rgba(247,183,49,0.12);padding:2px 7px;border-radius:20px;display:inline-block;margin-top:1px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;color:var(--muted);font-size:13px;transition:all 0.18s;text-decoration:none;margin-bottom:1px}
+.nav-item:hover,.nav-item.active{background:rgba(247,183,49,0.08);color:var(--text)}
+.nav-item.active{border-left:2px solid var(--accent);padding-left:10px}
+.logout{margin-top:auto;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;color:var(--muted);font-size:13px;text-decoration:none}
+.logout:hover{color:#ff6584}
+
+.main{flex:1;padding:28px 32px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.page-header{text-align:center;margin-bottom:28px;width:100%}
+.page-header h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px}
+.page-header p{color:var(--muted);font-size:13px}
+
+.scanner-wrapper{width:100%;max-width:480px}
+
+/* Camera box */
+.cam-box{position:relative;background:#000;border-radius:20px;overflow:hidden;border:2px solid var(--border);aspect-ratio:1;width:100%;margin-bottom:18px}
+.cam-box video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-box canvas{display:none}
+.scan-overlay{position:absolute;inset:0;pointer-events:none}
+.corner{position:absolute;width:36px;height:36px;border-color:var(--accent);border-style:solid;border-width:0}
+.corner.tl{top:16px;left:16px;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
+.corner.tr{top:16px;right:16px;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
+.corner.bl{bottom:16px;left:16px;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
+.corner.br{bottom:16px;right:16px;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
+.scan-line{position:absolute;left:16px;right:16px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scanline 2s ease-in-out infinite;box-shadow:0 0 8px var(--accent)}
+@keyframes scanline{0%,100%{top:20%}50%{top:80%}}
+
+.cam-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--card)}
+.cam-placeholder .cam-icon{font-size:56px;opacity:0.5}
+.cam-placeholder p{color:var(--muted);font-size:14px}
+
+/* Status strip */
+.status-strip{border-radius:12px;padding:13px 16px;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;transition:all 0.3s}
+.status-strip.idle{background:rgba(247,183,49,0.08);border:1px solid rgba(247,183,49,0.2);color:var(--accent)}
+.status-strip.scanning{background:rgba(0,212,160,0.07);border:1px solid rgba(0,212,160,0.2);color:#00d4a0}
+.status-strip.found{background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);color:#2ecc71}
+.status-strip.error{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.25);color:#e74c3c}
+.pulse-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pulse-dot.scanning{background:#00d4a0;animation:pulse 1.2s ease-in-out infinite}
+.pulse-dot.idle{background:var(--accent)}
+.pulse-dot.found{background:#2ecc71}
+.pulse-dot.error{background:#e74c3c}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.5)}}
+
+.btn-cam{width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;transition:all 0.2s;letter-spacing:0.3px}
+.btn-start{background:linear-gradient(135deg,var(--accent),#e67e22);color:#000}
+.btn-start:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(247,183,49,0.35)}
+.btn-stop{background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.3)}
+.btn-stop:hover{background:rgba(231,76,60,0.25)}
+
+/* Manual URL fallback */
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.manual-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.manual-box h4{font-family:'Syne',sans-serif;font-size:14px;margin-bottom:10px;color:var(--muted)}
+.url-input-row{display:flex;gap:8px}
+.url-input-row input{flex:1;padding:10px 13px;background:#0a0a12;border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:'DM Sans',sans-serif}
+.url-input-row input:focus{border-color:var(--accent)}
+.url-input-row button{padding:10px 16px;background:var(--accent);border:none;border-radius:9px;color:#000;font-weight:600;cursor:pointer;font-size:13px;white-space:nowrap}
+
+.tips{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-top:16px}
+.tips h4{font-family:'Syne',sans-serif;font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
+.tip{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--muted);margin-bottom:7px;line-height:1.4}
+.tip span{color:var(--accent);flex-shrink:0}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">📡</div>
+    <div><h2>AttendX</h2><div class="brand-role">Student</div></div>
+  </div>
+  <a href="/student" class="nav-item"><span>🏠</span> Dashboard</a>
+  <a href="/student/scanner" class="nav-item active"><span>📷</span> Scan QR</a>
+  <a href="#attendance" class="nav-item"><span>📊</span> Attendance</a>
+  <a href="#history" class="nav-item"><span>📋</span> History</a>
+  <a href="/logout" class="logout"><span>🚪</span> Logout</a>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <h1>📷 Scan QR Code</h1>
+    <p>Point your camera at the QR code shown by your faculty</p>
+  </div>
+
+  <div class="scanner-wrapper">
+    <!-- Camera -->
+    <div class="cam-box" id="camBox">
+      <div class="cam-placeholder" id="placeholder">
+        <div class="cam-icon">📸</div>
+        <p>Camera not started</p>
+      </div>
+      <video id="video" autoplay playsinline style="display:none"></video>
+      <canvas id="canvas"></canvas>
+      <div class="scan-overlay" id="scanOverlay" style="display:none">
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="scan-line"></div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-strip idle" id="statusStrip">
+      <div class="pulse-dot idle" id="statusDot"></div>
+      <span id="statusText">Press "Start Camera" to begin scanning</span>
+    </div>
+
+    <!-- Button -->
+    <button class="btn-cam btn-start" id="camBtn" onclick="toggleCamera()">📷 Start Camera</button>
+
+    <!-- Manual fallback -->
+    <div class="divider">or enter scan URL manually</div>
+    <div class="manual-box">
+      <h4>📎 Paste Scan URL</h4>
+      <div class="url-input-row">
+        <input type="text" id="manualUrl" placeholder="http://localhost:5000/scan/abc123...">
+        <button onclick="goManual()">Go →</button>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips">
+      <h4>Tips for scanning</h4>
+      <div class="tip"><span>💡</span> Hold your device steady and ensure the QR is fully visible</div>
+      <div class="tip"><span>🔆</span> Make sure there's enough light on the QR code</div>
+      <div class="tip"><span>⏱</span> QR codes expire after 2 minutes — scan promptly</div>
+      <div class="tip"><span>🔒</span> You must be logged in — attendance records your identity</div>
+    </div>
+  </div>
+</main>
+
+<script>
+let stream = null;
+let scanning = false;
+let animFrame = null;
+
+function setStatus(type, msg) {
+  const strip = document.getElementById('statusStrip');
+  const dot = document.getElementById('statusDot');
+  strip.className = 'status-strip ' + type;
+  dot.className = 'pulse-dot ' + type;
+  document.getElementById('statusText').textContent = msg;
+}
+
+async function toggleCamera() {
+  if (scanning) {
+    stopCamera();
+  } else {
+    await startCamera();
+  }
+}
+
+async function startCamera() {
+  try {
+    setStatus('scanning', 'Requesting camera access...');
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    video.style.display = 'block';
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('scanOverlay').style.display = 'block';
+    document.getElementById('camBtn').textContent = '⏹ Stop Camera';
+    document.getElementById('camBtn').className = 'btn-cam btn-stop';
+    scanning = true;
+    setStatus('scanning', 'Scanning… point at a QR code');
+    video.onloadedmetadata = () => { video.play(); scanFrame(); };
+  } catch(e) {
+    setStatus('error', 'Camera access denied. Use the manual URL below.');
+  }
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  scanning = false;
+  document.getElementById('video').style.display = 'none';
+  document.getElementById('video').srcObject = null;
+  document.getElementById('placeholder').style.display = 'flex';
+  document.getElementById('scanOverlay').style.display = 'none';
+  document.getElementById('camBtn').textContent = '📷 Start Camera';
+  document.getElementById('camBtn').className = 'btn-cam btn-start';
+  setStatus('idle', 'Press "Start Camera" to begin scanning');
+}
+
+function scanFrame() {
+  if (!scanning) return;
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+    if (code) {
+      const url = code.data;
+      if (url.includes('/scan/')) {
+        setStatus('found', '✅ QR detected! Redirecting...');
+        stopCamera();
+        setTimeout(() => { window.location.href = url; }, 600);
+        return;
+      } else {
+        setStatus('error', 'QR found but not an AttendX code. Try another.');
+      }
+    }
+  }
+  animFrame = requestAnimationFrame(scanFrame);
+}
+
+function goManual() {
+  const url = document.getElementById('manualUrl').value.trim();
+  if (!url) { alert('Please paste a URL'); return; }
+  if (url.includes('/scan/')) {
+    window.location.href = url;
+  } else {
+    alert('This does not look like an AttendX scan URL. It should contain /scan/');
+  }
+}
+
+// Cleanup on page leave
+window.addEventListener('beforeunload', stopCamera);
+</script>
+</body>
+</html>

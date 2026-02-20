@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07070d;--surface:#0f0f1a;--card:#131320;--border:#1a1a2e;--accent:#6c63ff;--accent2:#ff6584;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--text:#e0e0f0;--muted:#5a5a72}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;z-index:50}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:28px}
+.brand-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.brand h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:800}
+.brand-role{font-size:10px;color:var(--accent);background:rgba(108,99,255,0.12);padding:2px 7px;border-radius:20px;display:inline-block;margin-top:1px}
+.nav-section{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);padding:0 10px;margin:16px 0 6px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:13px;transition:all 0.18s;text-decoration:none;margin-bottom:1px}
+.nav-item:hover,.nav-item.active{background:rgba(108,99,255,0.1);color:var(--text)}
+.nav-item.active{border-left:2px solid var(--accent);padding-left:10px}
+.ni{font-size:16px;width:20px;text-align:center}
+.logout{margin-top:auto;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;color:var(--muted);font-size:13px;text-decoration:none;transition:all 0.18s}
+.logout:hover{color:var(--accent2);background:rgba(255,101,132,0.07)}
+.main{margin-left:230px;padding:28px 32px}
+.page-header{margin-bottom:28px}
+.page-header h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.5px}
+.page-header p{color:var(--muted);font-size:13px;margin-top:3px}
+.toast{padding:12px 18px;border-radius:10px;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:10px;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);color:#2ecc71}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;right:0;width:50px;height:50px;border-radius:0 14px 0 50px;opacity:0.12}
+.stat-card.s1::after{background:var(--accent)}.stat-card.s2::after{background:var(--green)}.stat-card.s3::after{background:var(--yellow)}.stat-card.s4::after{background:var(--accent2)}
+.stat-icon{font-size:20px;margin-bottom:10px}
+.stat-val{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;line-height:1}
+.stat-label{font-size:12px;color:var(--muted);margin-top:3px}
+.tab-bar{display:flex;gap:4px;background:#0a0a12;padding:4px;border-radius:11px;margin-bottom:22px;width:fit-content}
+.tab-btn{padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);background:transparent;font-family:'DM Sans',sans-serif;transition:all 0.18s}
+.tab-btn.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.tab-content{display:none}.tab-content.active{display:block}
+.section{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:20px}
+.section-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.section-header h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.section-body{padding:18px 22px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);padding:0 10px 10px;font-weight:500}
+td{padding:10px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,0.015)}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.badge.green{background:rgba(46,204,113,0.12);color:#2ecc71}.badge.yellow{background:rgba(243,156,18,0.12);color:#f39c12}.badge.red{background:rgba(231,76,60,0.12);color:#e74c3c}.badge.purple{background:rgba(108,99,255,0.12);color:#6c63ff}
+.pct-bar{width:90px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;display:inline-block}
+.pct-fill{height:100%;border-radius:3px}.pct-fill.good{background:var(--green)}.pct-fill.warn{background:var(--yellow)}.pct-fill.bad{background:var(--accent2)}
+.btn{padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:all 0.18s;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#5b52ee}
+.btn-danger{background:rgba(231,76,60,0.12);color:#e74c3c;border:1px solid rgba(231,76,60,0.2)}.btn-danger:hover{background:rgba(231,76,60,0.22)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--accent)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px;width:430px;box-shadow:0 32px 80px rgba(0,0,0,0.6);animation:modalIn 0.25s cubic-bezier(0.16,1,0.3,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}}
+.modal h3{font-family:'Syne',sans-serif;font-size:17px;margin-bottom:22px}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px}
+.form-row input,.form-row select{width:100%;padding:10px 13px;background:#0a0a12;border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:'DM Sans',sans-serif;transition:border-color 0.18s}
+.form-row input:focus,.form-row select:focus{border-color:var(--accent)}
+.form-row select option{background:#131320}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;gap:8px;margin-top:20px}
+.modal-actions .btn{flex:1;justify-content:center;padding:11px}
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:var(--surface);border:1px solid rgba(231,76,60,0.3);border-radius:16px;padding:28px;width:340px;text-align:center}
+.confirm-box .warn-icon{font-size:40px;margin-bottom:12px}
+.confirm-box h4{font-family:'Syne',sans-serif;font-size:16px;margin-bottom:8px}
+.confirm-box p{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.5}
+.confirm-actions{display:flex;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">📡</div>
+    <div><h2>AttendX</h2><div class="brand-role">Admin</div></div>
+  </div>
+  <div class="nav-section">Management</div>
+  <a href="#" class="nav-item active" onclick="showTab('overview',this)"><span class="ni">🏠</span> Overview</a>
+  <a href="#" class="nav-item" onclick="showTab('students',this)"><span class="ni">👥</span> Students</a>
+  <a href="#" class="nav-item" onclick="showTab('teachers',this)"><span class="ni">👨‍🏫</span> Teachers</a>
+  <a href="#" class="nav-item" onclick="showTab('subjects',this)"><span class="ni">📚</span> Subjects</a>
+  <div class="nav-section">Attendance</div>
+  <a href="/admin/manual_attendance" class="nav-item"><span class="ni">✏️</span> Manual Entry</a>
+  <a href="#" class="nav-item" onclick="showTab('import',this)"><span class="ni">📂</span> Import CSV</a>
+  <a href="#" class="nav-item" onclick="showTab('reports',this);loadReport()"><span class="ni">📊</span> Reports</a>
+  <a href="/logout" class="logout"><span class="ni">🚪</span> Logout</a>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <h1>Admin Dashboard</h1>
+    <p>Manage students, teachers, subjects, and attendance</p>
+  </div>
+
+  {% if msg %}<div class="toast">✅ {{ msg.replace('+',' ') }}</div>{% endif %}
+
+  <div class="stats-grid">
+    <div class="stat-card s1"><div class="stat-icon">👨‍🎓</div><div class="stat-val">{{ stats.students }}</div><div class="stat-label">Students</div></div>
+    <div class="stat-card s2"><div class="stat-icon">👨‍🏫</div><div class="stat-val">{{ stats.faculty }}</div><div class="stat-label">Faculty</div></div>
+    <div class="stat-card s3"><div class="stat-icon">📚</div><div class="stat-val">{{ stats.classes }}</div><div class="stat-label">Subjects</div></div>
+    <div class="stat-card s4"><div class="stat-icon">📋</div><div class="stat-val">{{ stats.sessions }}</div><div class="stat-label">Sessions</div></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+    <button class="tab-btn" onclick="showTab('students',this)">Students</button>
+    <button class="tab-btn" onclick="showTab('teachers',this)">Teachers</button>
+    <button class="tab-btn" onclick="showTab('subjects',this)">Subjects</button>
+    <button class="tab-btn" onclick="showTab('reports',this);loadReport()">Reports</button>
+    <button class="tab-btn" onclick="showTab('import',this)">📂 Import CSV</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="section">
+      <div class="section-header"><h3>Students — Quick Overview</h3><a href="/admin/manual_attendance" class="btn btn-primary">✏️ Manual Attendance</a></div>
+      <div class="section-body">
+        <table>
+          <thead><tr><th>Name</th><th>Roll</th><th>Class</th><th>Attendance</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for s in students %}
+            {% set pct = (s.present_count / s.total_sessions * 100)|round(1) if s.total_sessions > 0 else 0 %}
+            <tr>
+              <td><strong>{{ s.name }}</strong></td>
+              <td style="color:var(--muted)">{{ s.rollno or '—' }}</td>
+              <td><span class="badge purple">{{ s.class_name or '—' }}</span></td>
+              <td><div style="display:flex;align-items:center;gap:7px"><div class="pct-bar"><div class="pct-fill {{ 'good' if pct>=75 else ('warn' if pct>=50 else 'bad') }}" style="width:{{ pct }}%"></div></div><span style="font-size:12px">{{ pct }}%</span></div></td>
+              <td><span class="badge {{ 'green' if pct>=75 else ('yellow' if pct>=50 else 'red') }}">{{ 'Good' if pct>=75 else ('Warn' if pct>=50 else 'Critical') }}</span></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENTS -->
+  <div class="tab-content" id="tab-students">
+    <div class="section">
+      <div class="section-header"><h3>All Students</h3><button class="btn btn-primary" onclick="openUserModal('student')">+ Add Student</button></div>
+      <div class="section-body">
+        <table>
+          <thead><tr><th>Name</th><th>Username</th><th>Roll No</th><th>Class</th><th>Phone</th><th>Attendance %</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for s in students %}
+            {% set pct = (s.present_count / s.total_sessions * 100)|round(1) if s.total_sessions > 0 else 0 %}
+            <tr>
+              <td><strong>{{ s.name }}</strong></td>
+              <td style="color:var(--muted)">{{ s.username }}</td>
+              <td>{{ s.rollno or '—' }}</td>
+              <td><span class="badge purple">{{ s.class_name or '—' }}</span></td>
+              <td style="color:var(--muted)">{{ s.phone or '—' }}</td>
+              <td><span style="color:{{ '#2ecc71' if pct>=75 else ('#f39c12' if pct>=50 else '#e74c3c') }};font-weight:600">{{ pct }}%</span></td>
+              <td><button class="btn btn-danger" onclick="confirmDelete({{ s.id }},'{{ s.name }}')">🗑 Delete</button></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHERS -->
+  <div class="tab-content" id="tab-teachers">
+    <div class="section">
+      <div class="section-header"><h3>Faculty / Teachers</h3><button class="btn btn-primary" onclick="openUserModal('faculty')">+ Add Teacher</button></div>
+      <div class="section-body">
+        <table>
+          <thead><tr><th>Name</th><th>Username</th><th>Phone</th><th>Subjects Assigned</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for f in faculty_list %}
+          <tr>
+            <td><strong>{{ f.name }}</strong></td>
+            <td style="color:var(--muted)">{{ f.username }}</td>
+            <td style="color:var(--muted)">{{ f.phone or '—' }}</td>
+            <td>{% for c in classes if c.faculty_id == f.id %}<span class="badge purple" style="margin:2px">{{ c.subject }}</span>{% endfor %}</td>
+            <td><button class="btn btn-danger" onclick="confirmDelete({{ f.id }},'{{ f.name }}')">🗑 Delete</button></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBJECTS -->
+  <div class="tab-content" id="tab-subjects">
+    <div class="section">
+      <div class="section-header"><h3>Subjects / Classes</h3><button class="btn btn-primary" onclick="document.getElementById('subjectModal').classList.add('open')">+ Add Subject</button></div>
+      <div class="section-body">
+        <table>
+          <thead><tr><th>Subject</th><th>Faculty</th><th>Class</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for c in classes %}
+          <tr>
+            <td><strong>{{ c.subject }}</strong></td>
+            <td>{{ c.faculty_name }}</td>
+            <td><span class="badge purple">{{ c.class_name }}</span></td>
+            <td><button class="btn btn-danger" onclick="confirmDeleteSubject({{ c.id }},'{{ c.subject }}')">🗑 Delete</button></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="tab-content" id="tab-reports">
+    <div class="section">
+      <div class="section-header"><h3>Full Attendance Report</h3><button class="btn btn-primary" onclick="loadReport()">🔄 Refresh</button></div>
+      <div class="section-body" id="report-body"><p style="color:var(--muted);text-align:center;padding:20px">Click Refresh to load</p></div>
+    </div>
+  </div>
+
+  <!-- CSV IMPORT TAB -->
+  <div class="tab-content" id="tab-import">
+
+    <!-- Error panel from last import -->
+    {% if session.get("csv_errors") %}
+    <div style="background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.25);border-radius:14px;padding:20px;margin-bottom:20px">
+      <h4 style="font-family:Syne,sans-serif;font-size:14px;color:#e74c3c;margin-bottom:12px">⚠️ Rows skipped in last import</h4>
+      {% for err in session.get("csv_errors",[]) %}
+      <div style="font-size:12px;color:var(--muted);padding:5px 0;border-bottom:1px solid var(--border)">{{ err }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+
+      <!-- Upload form -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px">
+        <h4 style="font-family:Syne,sans-serif;font-size:15px;margin-bottom:18px">📤 Upload & Import</h4>
+        <form method="POST" action="/admin/import_csv" enctype="multipart/form-data" id="importForm">
+          <div class="form-row">
+            <label>Import as</label>
+            <select name="role" id="importRole">
+              <option value="student">Students</option>
+              <option value="faculty">Faculty / Teachers</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>CSV File</label>
+            <div style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s" id="dropZone" onclick="document.getElementById('csvFile').click()">
+              <div style="font-size:28px;margin-bottom:8px">📂</div>
+              <div style="font-size:13px;color:var(--muted)" id="dropLabel">Click to choose CSV file</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Supports UTF-8, Excel CSV, Latin-1 encoding</div>
+            </div>
+            <input type="file" name="csv_file" id="csvFile" accept=".csv" required style="display:none" onchange="onFileSelect(this)">
+          </div>
+          <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;padding:10px;margin-bottom:8px" onclick="previewCSV()">🔍 Preview First 5 Rows</button>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" id="importBtn" disabled>📤 Import All Rows</button>
+        </form>
+      </div>
+
+      <!-- Column reference -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px">
+        <h4 style="font-family:Syne,sans-serif;font-size:15px;margin-bottom:4px">📋 Accepted Column Names</h4>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Any of these names work — the system auto-detects them</p>
+        <table style="font-size:12px">
+          <thead><tr><th>Field</th><th>Required</th><th>Accepted Names</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Roll / HTNO</strong></td><td><span class="badge green">Yes*</span></td><td style="color:var(--muted)">HTNO, htno, Roll No, rollno</td></tr>
+            <tr><td><strong>Name</strong></td><td><span class="badge green">Yes</span></td><td style="color:var(--muted)">Name, name, Student Name, Full Name</td></tr>
+            <tr><td><strong>Phone</strong></td><td><span class="badge yellow">SMS alerts</span></td><td style="color:var(--muted)">Phone No, phone, Mobile, Mobile No</td></tr>
+            <tr><td><strong>Email</strong></td><td><span class="badge purple">Optional</span></td><td style="color:var(--muted)">Email ID, email, Email, Mail</td></tr>
+            <tr><td><strong>Gender</strong></td><td><span class="badge purple">Optional</span></td><td style="color:var(--muted)">Gender, gender, Sex</td></tr>
+            <tr><td><strong>Date of Birth</strong></td><td><span class="badge purple">Optional</span></td><td style="color:var(--muted)">Date of Birth, dob, DOB, Birth Date</td></tr>
+            <tr><td><strong>Class</strong></td><td><span class="badge purple">Auto/Optional</span></td><td style="color:var(--muted)">class_name, Class, Section, Branch</td></tr>
+            <tr><td><strong>Password</strong></td><td><span class="badge purple">Optional</span></td><td style="color:var(--muted)">password, Password (default: student123)</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:14px;padding:12px;background:rgba(108,99,255,0.06);border:1px solid rgba(108,99,255,0.1);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.7">
+          <strong style="color:var(--accent)">Auto-class from HTNO:</strong> e.g. <code style="color:#f7b731">238P1A0201</code> → CSE-Y1<br>
+          <strong style="color:var(--accent)">Auto-phone:</strong> 8-10 digit numbers get +91 prefix<br>
+          <strong style="color:var(--accent)">Duplicate username:</strong> auto-renamed with row number suffix<br>
+          <strong style="color:var(--accent)">Encoding:</strong> UTF-8, Excel CSV, Latin-1 all accepted
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview panel -->
+    <div id="previewPanel" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
+      <h4 style="font-family:Syne,sans-serif;font-size:15px;margin-bottom:6px">🔍 CSV Preview <span id="previewMeta" style="font-size:12px;color:var(--muted);font-weight:400"></span></h4>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Showing first 5 rows. Verify your columns are detected correctly before importing.</p>
+      <div style="overflow-x:auto" id="previewTable"></div>
+      <div id="detectedHeaders" style="margin-top:12px;font-size:12px;color:var(--muted)"></div>
+    </div>
+
+    <!-- Common reasons for skipping -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px">
+      <h4 style="font-family:Syne,sans-serif;font-size:15px;margin-bottom:14px">❓ Why Rows Get Skipped</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+        <div style="padding:12px;background:#0a0a12;border-radius:10px;border-left:3px solid #e74c3c">
+          <strong style="color:#e74c3c">Empty Name</strong><br>
+          <span style="color:var(--muted)">The Name column is blank for that row</span>
+        </div>
+        <div style="padding:12px;background:#0a0a12;border-radius:10px;border-left:3px solid #f39c12">
+          <strong style="color:#f39c12">Duplicate Username</strong><br>
+          <span style="color:var(--muted)">Same HTNO or username already exists → auto-renamed with suffix</span>
+        </div>
+        <div style="padding:12px;background:#0a0a12;border-radius:10px;border-left:3px solid #6c63ff">
+          <strong style="color:#6c63ff">Wrong Column Names</strong><br>
+          <span style="color:var(--muted)">Column header doesn't match any accepted name above</span>
+        </div>
+        <div style="padding:12px;background:#0a0a12;border-radius:10px;border-left:3px solid var(--muted)">
+          <strong style="color:var(--text)">Completely Empty Row</strong><br>
+          <span style="color:var(--muted)">Blank lines in the CSV are silently ignored</span>
+        </div>
+        <div style="padding:12px;background:#0a0a12;border-radius:10px;border-left:3px solid #2ecc71">
+          <strong style="color:#2ecc71">Wrong File Encoding</strong><br>
+          <span style="color:var(--muted)">Save your file as "CSV UTF-8" from Excel (not just CSV)</span>
+        </div>
+        <div style="padding:12px;background:#0a0a12;border-radius:10px;border-left:3px solid #00d4a0">
+          <strong style="color:#00d4a0">Extra Spaces in Headers</strong><br>
+          <span style="color:var(--muted)">e.g. " Name " with spaces — use Preview to check</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ADD USER MODAL -->
+<div class="modal-overlay" id="userModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <h3 id="umodal-title">Add User</h3>
+    <form method="POST" action="/admin/add_user">
+      <input type="hidden" name="role" id="umodal-role">
+      <div class="form-row"><label>Full Name</label><input name="name" required placeholder="John Doe"></div>
+      <div class="grid2">
+        <div class="form-row"><label>Username</label><input name="username" required placeholder="john123"></div>
+        <div class="form-row"><label>Password</label><input name="password" type="password" required placeholder="••••••"></div>
+      </div>
+      <div class="form-row"><label>Phone</label><input name="phone" placeholder="+91xxxxxxxxxx"></div>
+      <div id="student-extra">
+        <div class="grid2">
+          <div class="form-row"><label>Class</label><input name="class_name" placeholder="CS-A"></div>
+          <div class="form-row"><label>Roll No</label><input name="rollno" placeholder="S001"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Create</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('userModal').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADD SUBJECT MODAL -->
+<div class="modal-overlay" id="subjectModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <h3>📚 Add Subject</h3>
+    <form method="POST" action="/admin/add_subject">
+      <div class="form-row"><label>Subject Name</label><input name="subject" required placeholder="Data Structures"></div>
+      <div class="form-row"><label>Assign Faculty</label>
+        <select name="faculty_id" required>
+          <option value="">-- Select Faculty --</option>
+          {% for f in faculty_list %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-row"><label>Class Name</label><input name="class_name" required placeholder="CS-A"></div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Add Subject</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('subjectModal').classList.remove('open')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE USER CONFIRM -->
+<div class="confirm-overlay" id="confirmUserDel">
+  <div class="confirm-box">
+    <div class="warn-icon">⚠️</div>
+    <h4>Delete User?</h4>
+    <p id="del-msg">This user and all their attendance data will be permanently removed.</p>
+    <div class="confirm-actions">
+      <form id="delUserForm" method="POST">
+        <button type="submit" class="btn btn-danger" style="width:100%;justify-content:center;padding:11px">Yes, Delete Permanently</button>
+      </form>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;padding:11px" onclick="document.getElementById('confirmUserDel').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE SUBJECT CONFIRM -->
+<div class="confirm-overlay" id="confirmSubDel">
+  <div class="confirm-box">
+    <div class="warn-icon">🗑️</div>
+    <h4>Delete Subject?</h4>
+    <p id="subdel-msg">All sessions and attendance records for this subject will be permanently deleted.</p>
+    <div class="confirm-actions">
+      <form id="delSubForm" method="POST">
+        <button type="submit" class="btn btn-danger" style="width:100%;justify-content:center;padding:11px">Yes, Delete</button>
+      </form>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;padding:11px" onclick="document.getElementById('confirmSubDel').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) { el.classList.add('active'); }
+}
+function openUserModal(role) {
+  document.getElementById('umodal-role').value = role;
+  document.getElementById('umodal-title').textContent = role === 'student' ? '👨‍🎓 Add Student' : '👨‍🏫 Add Teacher';
+  document.getElementById('student-extra').style.display = role === 'student' ? 'block' : 'none';
+  document.getElementById('userModal').classList.add('open');
+}
+function confirmDelete(id, name) {
+  document.getElementById('del-msg').textContent = `"${name}" and all related data will be permanently removed.`;
+  document.getElementById('delUserForm').action = `/admin/delete_user/${id}`;
+  document.getElementById('confirmUserDel').classList.add('open');
+}
+function confirmDeleteSubject(id, name) {
+  document.getElementById('subdel-msg').textContent = `Subject "${name}" and all its QR sessions and attendance records will be deleted.`;
+  document.getElementById('delSubForm').action = `/admin/delete_subject/${id}`;
+  document.getElementById('confirmSubDel').classList.add('open');
+}
+function loadReport() {
+  document.getElementById('report-body').innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px">Loading...</p>';
+  fetch('/admin/attendance_report').then(r => r.json()).then(data => {
+    if (!data.length) { document.getElementById('report-body').innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px">No data yet.</p>'; return; }
+    let html = '<table><thead><tr><th>Student</th><th>Roll</th><th>Class</th><th>Subject</th><th>Present</th><th>Total</th><th>%</th></tr></thead><tbody>';
+    data.forEach(r => {
+      const c = r.pct >= 75 ? 'good' : r.pct >= 50 ? 'warn' : 'bad';
+      html += `<tr><td><strong>${r.name}</strong></td><td style="color:var(--muted)">${r.rollno||'—'}</td><td>${r.class_name}</td><td>${r.subject}</td><td>${r.present}</td><td>${r.total}</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pct-bar"><div class="pct-fill ${c}" style="width:${r.pct}%"></div></div>${r.pct}%</div></td></tr>`;
+    });
+    document.getElementById('report-body').innerHTML = html + '</tbody></table>';
+  });
+}
+
+// ── CSV Import helpers ────────────────────────────────────────────────────────
+function onFileSelect(input) {
+  const f = input.files[0];
+  if (!f) return;
+  document.getElementById('dropLabel').textContent = '✅ ' + f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
+  document.getElementById('dropZone').style.borderColor = 'var(--accent)';
+  document.getElementById('importBtn').disabled = false;
+}
+
+function previewCSV() {
+  const fileInput = document.getElementById('csvFile');
+  if (!fileInput.files[0]) { alert('Please select a CSV file first'); return; }
+  const formData = new FormData();
+  formData.append('csv_file', fileInput.files[0]);
+  fetch('/admin/preview_csv', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { alert('Preview error: ' + data.error); return; }
+      const panel = document.getElementById('previewPanel');
+      panel.style.display = 'block';
+      document.getElementById('previewMeta').textContent = '— ' + data.headers.length + ' columns detected';
+      document.getElementById('detectedHeaders').innerHTML =
+        '<strong style="color:var(--text)">Detected headers:</strong> ' +
+        data.headers.map(h => `<span style="background:#1a1a2e;padding:2px 8px;border-radius:5px;margin:2px;display:inline-block">${h}</span>`).join('');
+      if (!data.preview.length) {
+        document.getElementById('previewTable').innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px">No data rows found</p>';
+        return;
+      }
+      let html = '<table style="font-size:12px"><thead><tr>';
+      data.headers.forEach(h => { html += `<th style="white-space:nowrap">${h}</th>`; });
+      html += '</tr></thead><tbody>';
+      data.preview.forEach(row => {
+        html += '<tr>';
+        data.headers.forEach(h => { html += `<td style="color:var(--muted);white-space:nowrap">${row[h] || ''}</td>`; });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('previewTable').innerHTML = html;
+      // Auto-scroll to preview
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    })
+    .catch(e => alert('Error: ' + e));
+}
+
+// Drag and drop support
+const dz = document.getElementById('dropZone');
+if (dz) {
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor = 'var(--border)'; });
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.csv')) {
+      document.getElementById('csvFile').files = e.dataTransfer.files;
+      onFileSelect(document.getElementById('csvFile'));
+    } else {
+      alert('Please drop a .csv file');
+    }
+  });
+}
+
+// Auto-open import tab if redirected there
+if (window.location.search.includes('tab=import')) {
+  showTab('import', document.querySelector('.tab-btn:nth-child(6)'));
+}
+</script>
+</body>
+</html>

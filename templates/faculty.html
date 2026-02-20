@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — Faculty</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07070d;--surface:#0f0f1a;--card:#131320;--border:#1a1a2e;--accent:#00d4a0;--accent2:#ff6584;--text:#e0e0f0;--muted:#5a5a72}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:12px;padding:8px 12px;margin-bottom:32px}
+.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#009970);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.brand h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
+.brand span{font-size:11px;color:var(--accent);background:rgba(0,212,160,0.1);padding:2px 8px;border-radius:20px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;cursor:pointer;color:var(--muted);font-size:14px;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
+.nav-item:hover,.nav-item.active{background:rgba(0,212,160,0.08);color:var(--text)}
+.logout{margin-top:auto;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;color:var(--muted);font-size:14px;text-decoration:none;transition:all 0.2s}
+.logout:hover{color:#ff6584}
+.main{margin-left:240px;padding:32px}
+.header{margin-bottom:32px}
+.header h1{font-family:'Syne',sans-serif;font-size:26px;font-weight:800}
+.header p{color:var(--muted);font-size:14px;margin-top:4px}
+
+.classes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px}
+.class-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;transition:border-color 0.2s;position:relative;overflow:hidden}
+.class-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),#009970)}
+.class-card:hover{border-color:var(--accent)}
+.class-card h3{font-family:'Syne',sans-serif;font-size:17px;margin-bottom:6px}
+.class-card p{font-size:13px;color:var(--muted)}
+.class-actions{display:flex;gap:8px;margin-top:16px}
+
+.btn{padding:9px 16px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.2s;font-family:'DM Sans',sans-serif}
+.btn-gen{background:linear-gradient(135deg,var(--accent),#009970);color:#000;font-weight:600}
+.btn-gen:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,212,160,0.3)}
+.btn-view{background:var(--border);color:var(--text)}
+.btn-view:hover{background:#252535}
+
+.section{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:24px}
+.section-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.section-header h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+.section-body{padding:20px 24px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);padding:0 12px 12px;font-weight:500}
+td{padding:12px;border-top:1px solid var(--border);font-size:14px}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-active{background:rgba(0,212,160,0.12);color:var(--accent)}
+.badge-expired{background:rgba(255,101,132,0.12);color:#ff6584}
+.badge-pending{background:rgba(255,193,7,0.12);color:#ffc107}
+.timer{font-size:12px;font-family:'Syne',sans-serif;color:var(--accent);font-weight:600}
+
+/* Generate QR Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;width:400px}
+.modal h3{font-family:'Syne',sans-serif;font-size:18px;margin-bottom:24px}
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.form-row input,.form-row select{width:100%;padding:11px 14px;background:#0a0a12;border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif}
+.form-row input:focus,.form-row select:focus{border-color:var(--accent)}
+.modal-actions{display:flex;gap:10px;margin-top:24px}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);padding:10px 20px;border-radius:10px;cursor:pointer;font-size:14px}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">📡</div>
+    <div><h2>AttendX</h2><span>Faculty</span></div>
+  </div>
+  <a href="/faculty" class="nav-item active"><span>🏠</span> Dashboard</a>
+  <a href="#sessions" class="nav-item"><span>📋</span> Recent Sessions</a>
+  <a href="/logout" class="logout"><span>🚪</span> Logout</a>
+</aside>
+
+<main class="main">
+  <div class="header">
+    <h1>Faculty Dashboard</h1>
+    <p>Welcome, {{ session.name }} · Generate QR codes to take attendance</p>
+  </div>
+
+  <h3 style="font-family:'Syne',sans-serif;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px">Your Classes</h3>
+  <div class="classes-grid">
+    {% for cls in classes %}
+    <div class="class-card">
+      <h3>{{ cls.subject }}</h3>
+      <p>{{ cls.class_name }} Class</p>
+      <div class="class-actions">
+        <button class="btn btn-gen" onclick="openGenModal({{ cls.id }},'{{ cls.subject }}','{{ cls.class_name }}')">📱 Generate QR</button>
+        <a href="/faculty/attendance/{{ cls.id }}" class="btn btn-view">📊 View</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section" id="sessions">
+    <div class="section-header"><h3>Recent QR Sessions</h3></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Subject</th><th>Class</th><th>Session Label</th><th>Marked</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+        {% for t in recent_tokens %}
+          {% set expired = now > t.expires_at %}
+          {% set active = t.is_active == 1 and not expired %}
+        <tr>
+          <td><strong>{{ t.subject }}</strong></td>
+          <td>{{ t.class_name }}</td>
+          <td style="color:var(--muted)">{{ t.session_label }}</td>
+          <td><span style="font-weight:600;color:var(--accent)">{{ t.marked_count }}</span> students</td>
+          <td>
+            <span class="badge {{ 'badge-active' if active else 'badge-expired' }}">
+              {{ 'Active' if active else 'Expired' }}
+            </span>
+          </td>
+          <td>
+            {% if active %}
+            <a href="/qr/{{ t.token }}" style="color:var(--accent);font-size:13px;text-decoration:none">View QR →</a>
+            {% else %}<span style="color:var(--muted);font-size:13px">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Generate QR Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 id="modal-title">Generate QR Code</h3>
+    <form method="POST" action="/faculty/generate_qr">
+      <input type="hidden" name="class_id" id="modal-class-id">
+      <div class="form-row">
+        <label>Session Label</label>
+        <input name="label" id="modal-label" placeholder="e.g. Lecture 12 - Chapter 4">
+      </div>
+      <div style="background:rgba(0,212,160,0.05);border:1px solid rgba(0,212,160,0.2);border-radius:12px;padding:14px;margin-bottom:4px">
+        <p style="font-size:13px;color:var(--accent)">⏱ QR valid for <strong>{{ qr_valid }}s ({{ (qr_valid/60)|int }} min)</strong></p>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px">Students must scan before it expires. Previous QR for this class will be invalidated.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-gen" style="flex:1;padding:12px;font-size:14px">📱 Generate QR</button>
+        <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function openGenModal(id,subject,cls){
+  document.getElementById('modal-class-id').value=id;
+  document.getElementById('modal-title').textContent=`Generate QR — ${subject}`;
+  const now=new Date();
+  document.getElementById('modal-label').placeholder=`Lecture · ${now.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+</script>
+</body>
+</html>

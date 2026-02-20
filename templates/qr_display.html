@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — Scan QR</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07070d;--surface:#0f0f1a;--card:#131320;--border:#1a1a2e;--accent:#00d4a0;--text:#e0e0f0;--muted:#5a5a72}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.container{max-width:500px;width:100%;text-align:center}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:24px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);transition:all 0.2s}
+.back-link:hover{color:var(--text);border-color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px;box-shadow:0 24px 60px rgba(0,0,0,0.5)}
+
+.status-indicator{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:20px;background:rgba(0,212,160,0.1);color:var(--accent);border:1px solid rgba(0,212,160,0.2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.4)}}
+
+.subject{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px}
+.class-info{font-size:14px;color:var(--muted);margin-bottom:8px}
+.label{font-size:13px;color:var(--accent);margin-bottom:24px}
+
+.qr-wrapper{position:relative;display:inline-block;margin-bottom:24px}
+.qr-img{width:240px;height:240px;border-radius:16px;border:3px solid var(--border);transition:all 0.3s}
+.qr-img.expired{filter:blur(8px) grayscale(1);opacity:0.3}
+.expired-overlay{display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+.expired-overlay.show{display:flex}
+.expired-overlay .x{font-size:48px}
+.expired-overlay p{color:#ff6584;font-weight:700;font-family:'Syne',sans-serif}
+
+/* Timer ring */
+.timer-section{margin-bottom:24px}
+.ring-container{position:relative;width:100px;height:100px;margin:0 auto 12px}
+svg.ring{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--border);stroke-width:8}
+.ring-fill{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke 0.5s}
+.ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.timer-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+
+.scan-hint{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.6}
+.scan-hint strong{color:var(--text)}
+
+.btn-regen{margin-top:16px;padding:10px 24px;background:linear-gradient(135deg,var(--accent),#009970);border:none;border-radius:10px;color:#000;font-weight:600;cursor:pointer;font-size:14px;text-decoration:none;display:inline-block}
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/faculty" class="back-link">← Back to Dashboard</a>
+  
+  <div class="card">
+    <div class="status-indicator" id="status-badge">
+      <span class="dot" id="dot"></span>
+      <span id="status-text">Active — Waiting for scans</span>
+    </div>
+
+    <div class="subject">{{ token.subject }}</div>
+    <div class="class-info">{{ token.class_name }} Class</div>
+    <div class="label">📅 {{ token.session_label }}</div>
+
+    <div class="qr-wrapper">
+      <img src="/qr_image/{{ token.token }}" class="qr-img" id="qrImg" alt="QR Code">
+      <div class="expired-overlay" id="expiredOverlay">
+        <div class="x">⛔</div>
+        <p>QR Expired</p>
+      </div>
+    </div>
+
+    <div class="timer-section">
+      <div class="ring-container">
+        <svg class="ring" width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="40"/>
+          <circle class="ring-fill" cx="50" cy="50" r="40" id="ringFill"
+            stroke-dasharray="251.2" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-text" id="timerText">—</div>
+      </div>
+      <div class="timer-label" id="timer-label">seconds remaining</div>
+    </div>
+
+    <div class="scan-hint">
+      <strong>Students:</strong> Open your phone camera and scan this QR code to mark attendance. 
+      The QR expires after the countdown — faculty must generate a new one if needed.
+    </div>
+  </div>
+</div>
+
+<script>
+const expiresAt = {{ token.expires_at }};
+const total = {{ qr_valid }};
+const circumference = 251.2;
+const ring = document.getElementById('ringFill');
+const timerText = document.getElementById('timerText');
+const statusBadge = document.getElementById('status-badge');
+const statusText = document.getElementById('status-text');
+const dot = document.getElementById('dot');
+
+function update(){
+  const remaining = Math.max(0, expiresAt - Date.now()/1000);
+  const secs = Math.ceil(remaining);
+  timerText.textContent = secs;
+  
+  const progress = remaining / total;
+  ring.style.strokeDashoffset = circumference * (1 - progress);
+  
+  if(remaining <= 0){
+    ring.style.stroke = '#ff6584';
+    timerText.style.color = '#ff6584';
+    statusBadge.style.background = 'rgba(255,101,132,0.1)';
+    statusBadge.style.borderColor = 'rgba(255,101,132,0.2)';
+    statusBadge.style.color = '#ff6584';
+    statusText.textContent = 'QR Expired';
+    dot.style.background = '#ff6584';
+    dot.style.animation = 'none';
+    document.getElementById('qrImg').classList.add('expired');
+    document.getElementById('expiredOverlay').classList.add('show');
+    document.getElementById('timer-label').textContent = 'expired';
+    return;
+  } else if(remaining < 30){
+    ring.style.stroke = '#ff6584';
+    timerText.style.color = '#ff6584';
+  } else if(remaining < 60){
+    ring.style.stroke = '#f39c12';
+    timerText.style.color = '#f39c12';
+  }
+  
+  setTimeout(update, 1000);
+}
+update();
+</script>
+</body>
+</html>

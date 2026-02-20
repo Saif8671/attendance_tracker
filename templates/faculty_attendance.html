@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — {{ cls.subject }} Attendance</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07070d;--surface:#0f0f1a;--card:#131320;--border:#1a1a2e;--accent:#00d4a0;--text:#e0e0f0;--muted:#5a5a72}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;padding:32px;min-height:100vh}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:28px;padding:6px 14px;border-radius:8px;border:1px solid var(--border)}
+.back:hover{color:var(--text);border-color:var(--accent)}
+h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px}
+.meta{color:var(--muted);font-size:14px;margin-bottom:32px}
+.section{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:24px}
+.section-header{padding:20px 24px;border-bottom:1px solid var(--border)}
+.section-header h3{font-family:'Syne',sans-serif;font-size:16px}
+.section-body{padding:20px 24px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);padding:0 12px 12px;font-weight:500}
+td{padding:12px;border-top:1px solid var(--border);font-size:14px}
+.pct-bar{width:100px;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.pct-fill{height:100%;border-radius:3px}
+.badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.g{background:rgba(46,204,113,0.12);color:#2ecc71}
+.w{background:rgba(243,156,18,0.12);color:#f39c12}
+.r{background:rgba(255,101,132,0.12);color:#ff6584}
+</style>
+</head>
+<body>
+<a href="/faculty" class="back">← Back to Dashboard</a>
+<h1>{{ cls.subject }}</h1>
+<div class="meta">{{ cls.class_name }} Class · {{ total }} sessions recorded</div>
+
+<div class="section">
+  <div class="section-header"><h3>Student Attendance Summary</h3></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Name</th><th>Roll No</th><th>Present</th><th>Attendance %</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for s in students %}
+        {% set pct = (s.present_count / total * 100)|round(1) if total > 0 else 0 %}
+        {% set cls_tag = 'g' if pct>=75 else ('w' if pct>=50 else 'r') %}
+        <tr>
+          <td><strong>{{ s.name }}</strong></td>
+          <td style="color:var(--muted)">{{ s.rollno or '—' }}</td>
+          <td>{{ s.present_count }} / {{ total }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="pct-bar"><div class="pct-fill {{ cls_tag }}" style="width:{{ pct }}%;background:{{ '#2ecc71' if pct>=75 else ('#f39c12' if pct>=50 else '#ff6584') }}"></div></div>
+              {{ pct }}%
+            </div>
+          </td>
+          <td><span class="badge {{ cls_tag }}">{{ 'Good' if pct>=75 else ('Warning' if pct>=50 else 'Critical') }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header"><h3>Session Log</h3></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Session</th><th>Date/Time</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td><strong>{{ s.session_label }}</strong></td>
+        <td style="color:var(--muted)">{{ (s.created_at|int)|string }}</td>
+        <td><span class="badge {{ 'g' if not s.is_active else 'w' }}">{{ 'Closed' if not s.is_active else 'Active' }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>
