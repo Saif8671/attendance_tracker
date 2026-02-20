@@ -1,142 +1,79 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AttendX — Student</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#07070d;--surface:#0f0f1a;--card:#131320;--border:#1a1a2e;--accent:#f7b731;--accent2:#ff6584;--green:#2ecc71;--text:#e0e0f0;--muted:#5a5a72}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
-.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column}
-.brand{display:flex;align-items:center;gap:12px;padding:8px 12px;margin-bottom:32px}
-.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#e67e22);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.brand h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
-.brand span{font-size:11px;color:var(--accent);background:rgba(247,183,49,0.1);padding:2px 8px;border-radius:20px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;color:var(--muted);font-size:14px;transition:all 0.2s;text-decoration:none;margin-bottom:2px}
-.nav-item:hover,.nav-item.active{background:rgba(247,183,49,0.08);color:var(--text)}
-.logout{margin-top:auto;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;color:var(--muted);font-size:14px;text-decoration:none;transition:all 0.2s}
-.logout:hover{color:#ff6584}
-.main{margin-left:240px;padding:32px}
-.header{margin-bottom:32px;display:flex;align-items:center;justify-content:space-between}
-.header h1{font-family:'Syne',sans-serif;font-size:26px;font-weight:800}
-.header p{color:var(--muted);font-size:14px;margin-top:4px}
-.student-badge{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px}
-.avatar{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#e67e22);display:flex;align-items:center;justify-content:center;font-size:20px}
-.student-badge .name{font-weight:600;font-size:15px}
-.student-badge .meta{font-size:12px;color:var(--muted);margin-top:2px}
-
-.subject-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:32px}
-.subject-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:border-color 0.2s}
-.subject-card:hover{border-color:rgba(247,183,49,0.3)}
-.subject-card h3{font-family:'Syne',sans-serif;font-size:16px;margin-bottom:4px}
-.subject-card .counts{font-size:13px;color:var(--muted);margin-bottom:16px}
-.pct-num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;position:absolute;top:20px;right:20px;line-height:1}
-.bar-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px}
-.bar-fill{height:100%;border-radius:4px}
-.bar-fill.good{background:linear-gradient(90deg,#2ecc71,#1abc9c)}
-.bar-fill.warn{background:linear-gradient(90deg,#f39c12,#e67e22)}
-.bar-fill.bad{background:linear-gradient(90deg,#ff6584,#c0392b)}
-.status-text{font-size:12px;font-weight:500}
-.status-text.good{color:#2ecc71}
-.status-text.warn{color:#f39c12}
-.status-text.bad{color:#ff6584}
-.min-req{font-size:11px;color:var(--muted);margin-top:2px}
-
-.section{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:24px}
-.section-header{padding:20px 24px;border-bottom:1px solid var(--border)}
-.section-header h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
-.section-body{padding:20px 24px}
-table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);padding:0 12px 12px;font-weight:500}
-td{padding:12px;border-top:1px solid var(--border);font-size:14px}
-.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
-.badge-present{background:rgba(46,204,113,0.12);color:#2ecc71}
-.badge-absent{background:rgba(255,101,132,0.12);color:#ff6584}
-
-.scan-cta{background:linear-gradient(135deg,rgba(247,183,49,0.08),rgba(230,126,34,0.05));border:1px solid rgba(247,183,49,0.2);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px}
-.scan-cta h3{font-family:'Syne',sans-serif;font-size:18px;margin-bottom:8px}
-.scan-cta p{color:var(--muted);font-size:14px;line-height:1.6}
-.scan-icon{font-size:48px;margin-bottom:12px}
-</style>
+<title>Student Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+<script defer src="{{ url_for('static', filename='site.js') }}"></script>
 </head>
 <body>
-<aside class="sidebar">
-  <div class="brand">
-    <div class="brand-icon">📡</div>
-    <div><h2>AttendX</h2><span>Student</span></div>
-  </div>
-  <a href="/student" class="nav-item active"><span>🏠</span> Dashboard</a>
-  <a href="/student/scanner" class="nav-item" style="background:rgba(247,183,49,0.1);color:var(--accent);margin-bottom:4px"><span>📷</span> Scan QR Code</a>
-  <a href="#attendance" class="nav-item"><span>📊</span> Attendance</a>
-  <a href="#history" class="nav-item"><span>📋</span> History</a>
-  <a href="/logout" class="logout"><span>🚪</span> Logout</a>
-</aside>
+<div class="shell">
+  <aside class="sidebar" id="appSidebar">
+    <div class="brand"><h1>AttendX</h1><p>Student</p></div>
+    <a class="nav-link active" href="/student">Dashboard</a>
+    <a class="nav-link" href="/student/scanner">Scan QR</a>
+    <a class="logout-link" href="/logout">Logout</a>
+  </aside>
 
-<main class="main">
-  <div class="header">
-    <div>
-      <h1>My Attendance</h1>
-      <p>Track your class attendance and stay above 75%</p>
-    </div>
-    <div class="student-badge">
-      <div class="avatar">👨‍🎓</div>
+  <main class="main">
+    <div class="page-header">
       <div>
-        <div class="name">{{ student.name }}</div>
-        <div class="meta">{{ student.rollno or 'No Roll No' }} · {{ student.class_name or 'No Class' }}</div>
+        <button id="mobileMenuBtn" class="mobile-toggle" type="button">Menu</button>
+        <h2 class="page-title">My Attendance</h2>
+        <p class="page-subtitle">{{ student.name }} | {{ student.rollno or 'No Roll' }} | {{ student.class_name or 'General' }}</p>
       </div>
+      <a class="btn" href="/student/scanner">Open Scanner</a>
     </div>
-  </div>
 
-  <div class="scan-cta">
-    <div class="scan-icon">📱</div>
-    <h3>Ready to Mark Attendance?</h3>
-    <p>When your faculty shows the QR code, scan it with your phone camera<br>or use your phone's browser to open the scan link.</p>
-  </div>
+    {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}
 
-  <div id="attendance">
-    <h3 style="font-family:'Syne',sans-serif;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px">Subject-wise Attendance</h3>
-    <div class="subject-cards">
-    {% for a in attendance %}
-      {% set pct = (a.present_count / a.total_sessions * 100)|round(1) if a.total_sessions > 0 else 0 %}
-      {% set cls = 'good' if pct >= 75 else ('warn' if pct >= 50 else 'bad') %}
-      <div class="subject-card">
-        <div class="pct-num" style="color:{{ '#2ecc71' if pct>=75 else ('#f39c12' if pct>=50 else '#ff6584') }}">{{ pct|int }}%</div>
-        <h3>{{ a.subject }}</h3>
-        <div class="counts">{{ a.present_count }} / {{ a.total_sessions }} classes attended</div>
-        <div class="bar-track"><div class="bar-fill {{ cls }}" style="width:{{ pct }}%"></div></div>
-        <div class="status-text {{ cls }}">
-          {{ '✅ Good Standing' if pct>=75 else ('⚠️ Warning' if pct>=50 else '🚨 Critical') }}
+    <div class="hero" style="margin-bottom:14px">
+      <h3 style="margin:0 0 8px 0">Session Ready</h3>
+      <p class="muted" style="margin:0">Ask faculty for live QR and scan before it expires.</p>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px">
+      <div class="panel-head"><h3>Subject Overview</h3></div>
+      <div class="panel-body grid-3">
+        {% for a in attendance %}
+        {% set pct = (a.present_count / a.total_sessions * 100)|round(1) if a.total_sessions > 0 else 0 %}
+        <div class="card" style="padding:14px">
+          <h3 style="margin:0 0 4px 0">{{ a.subject }}</h3>
+          <p class="muted" style="margin:0 0 10px 0">{{ a.present_count }} / {{ a.total_sessions }} classes</p>
+          <div class="progress"><span style="width:{{ pct }}%"></span></div>
+          <div style="margin-top:7px;display:flex;justify-content:space-between;align-items:center">
+            <span class="badge">{{ 'Good' if pct>=75 else ('Warning' if pct>=50 else 'Critical') }}</span>
+            <strong>{{ pct }}%</strong>
+          </div>
         </div>
-        <div class="min-req">Minimum required: 75%</div>
-      </div>
-    {% endfor %}
-    </div>
-  </div>
-
-  <div class="section" id="history">
-    <div class="section-header"><h3>Attendance History</h3></div>
-    <div class="section-body">
-      {% if recent %}
-      <table>
-        <thead><tr><th>Date & Time</th><th>Subject</th><th>Session</th><th>Status</th></tr></thead>
-        <tbody>
-        {% for r in recent %}
-        <tr>
-          <td style="color:var(--muted)">{{ r.marked_at[:16].replace('T',' ') }}</td>
-          <td><strong>{{ r.subject }}</strong></td>
-          <td>{{ r.session_label or '—' }}</td>
-          <td><span class="badge {{ 'badge-present' if r.status=='present' else 'badge-absent' }}">{{ r.status|title }}</span></td>
-        </tr>
         {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p style="color:var(--muted);text-align:center;padding:20px">No attendance records yet. Scan a QR code to get started!</p>
-      {% endif %}
+      </div>
     </div>
-  </div>
-</main>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Recent Attendance</h3>
+        <input type="text" id="historySearch" placeholder="Search history" oninput="filterTable('historySearch','historyTable')" style="max-width:220px">
+      </div>
+      <div class="table-wrap">
+        <table id="historyTable">
+          <thead><tr><th>Date</th><th>Subject</th><th>Session</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for r in recent %}
+            <tr>
+              <td>{{ r.marked_at[:16].replace('T',' ') }}</td>
+              <td>{{ r.subject }}</td>
+              <td>{{ r.session_label or '-' }}</td>
+              <td><span class="badge">{{ r.status|title }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
 </body>
 </html>

@@ -1,0 +1,20 @@
+# Environment & secrets
+.env
+seed_students.csv
+
+# Database
+attendance.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

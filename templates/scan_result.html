@@ -1,48 +1,18 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AttendX — Scan Result</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#07070d;color:#e0e0f0;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.card{background:#0f0f1a;border:1px solid #1a1a2e;border-radius:24px;padding:48px 40px;max-width:400px;width:100%;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,0.6);animation:pop 0.5s cubic-bezier(0.16,1,0.3,1) both}
-@keyframes pop{from{opacity:0;transform:scale(0.9)}}
-.icon{font-size:72px;margin-bottom:20px;animation:bounce 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both}
-@keyframes bounce{from{transform:scale(0);opacity:0}60%{transform:scale(1.2)}to{transform:scale(1);opacity:1}}
-h2{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:10px}
-p{color:#5a5a72;font-size:15px;line-height:1.6;margin-bottom:24px}
-.detail{background:#131320;border:1px solid #1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:24px;font-size:14px;color:#a0a0c0}
-.success h2{color:#2ecc71}
-.success .card{border-color:rgba(46,204,113,0.2)}
-.error-card h2{color:#ff6584}
-.error-card{border-color:rgba(255,101,132,0.2)!important}
-.btn{display:inline-block;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;transition:all 0.2s;font-family:'Syne',sans-serif}
-.btn-success{background:linear-gradient(135deg,#2ecc71,#1abc9c);color:#000}
-.btn-err{background:linear-gradient(135deg,#ff6584,#c0392b);color:#fff}
-.btn:hover{transform:translateY(-1px)}
-</style>
+<title>Scan Result</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
 </head>
 <body>
-{% if success %}
-<div class="card success">
-  <div class="icon">✅</div>
-  <h2>Attendance Marked!</h2>
-  <p>{{ msg }}</p>
-  {% if subject %}
-  <div class="detail">📚 {{ subject }}{% if label %} · {{ label }}{% endif %}</div>
-  {% endif %}
-  <a href="/student" class="btn btn-success">Go to Dashboard →</a>
-</div>
-{% else %}
-<div class="card error-card">
-  <div class="icon">⚠️</div>
-  <h2>Could Not Mark</h2>
-  <p>{{ msg }}</p>
-  <a href="/student" class="btn btn-err">Go to Dashboard</a>
-</div>
-{% endif %}
+  <div class="center-card" style="text-align:center">
+    <h2 class="page-title" style="margin-top:0">{{ 'Attendance Marked' if success else 'Attendance Not Marked' }}</h2>
+    <p class="page-subtitle">{{ msg }}</p>
+    {% if subject %}<p><strong>{{ subject }}</strong>{% if label %} | {{ label }}{% endif %}</p>{% endif %}
+    <a class="btn" href="/student">Back to Dashboard</a>
+  </div>
 </body>
 </html>

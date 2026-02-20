@@ -1,193 +1,42 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AttendX — Login</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-:root {
-  --bg: #0a0a0f;
-  --surface: #12121a;
-  --border: #1e1e2e;
-  --accent: #6c63ff;
-  --accent2: #ff6584;
-  --text: #e8e8f0;
-  --muted: #6b6b80;
-}
-body {
-  min-height:100vh; display:flex; align-items:center; justify-content:center;
-  background: var(--bg);
-  font-family: 'DM Sans', sans-serif;
-  overflow: hidden;
-}
-.bg-orbs {
-  position:fixed; inset:0; pointer-events:none; z-index:0;
-}
-.orb {
-  position:absolute; border-radius:50%; filter:blur(80px); opacity:0.15;
-  animation: drift 8s ease-in-out infinite alternate;
-}
-.orb1 { width:500px; height:500px; background:#6c63ff; top:-100px; left:-100px; animation-delay:0s; }
-.orb2 { width:400px; height:400px; background:#ff6584; bottom:-80px; right:-80px; animation-delay:2s; }
-.orb3 { width:300px; height:300px; background:#43e97b; top:50%; left:50%; animation-delay:4s; }
-@keyframes drift { to { transform: translate(30px, 30px) scale(1.1); } }
-
-.card {
-  position:relative; z-index:1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 48px 44px;
-  width: 420px;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
-  animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;
-}
-@keyframes fadeUp { from { opacity:0; transform:translateY(30px); } }
-
-.logo {
-  text-align:center; margin-bottom:36px;
-}
-.logo-icon {
-  width:64px; height:64px; margin:0 auto 16px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius:18px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:28px;
-  box-shadow: 0 8px 32px rgba(108,99,255,0.4);
-}
-.logo h1 {
-  font-family:'Syne',sans-serif; font-size:28px; font-weight:800;
-  background: linear-gradient(135deg, #fff, #a0a0c0);
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  letter-spacing:-0.5px;
-}
-.logo p { color:var(--muted); font-size:14px; margin-top:4px; }
-
-.tabs {
-  display:flex; gap:4px; background:#0a0a0f; padding:4px; border-radius:12px;
-  margin-bottom:28px;
-}
-.tab {
-  flex:1; padding:8px; text-align:center; border-radius:9px;
-  cursor:pointer; font-size:13px; font-weight:500; color:var(--muted);
-  transition:all 0.2s; border:none; background:transparent;
-}
-.tab.active {
-  background:var(--surface); color:var(--text);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-.field { margin-bottom:18px; }
-.field label { display:block; font-size:12px; font-weight:500; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
-.field input {
-  width:100%; padding:13px 16px;
-  background:#0d0d15; border:1px solid var(--border);
-  border-radius:12px; color:var(--text); font-size:15px;
-  font-family:'DM Sans',sans-serif;
-  transition:border-color 0.2s, box-shadow 0.2s;
-  outline:none;
-}
-.field input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,99,255,0.15); }
-
-.btn-login {
-  width:100%; padding:14px;
-  background: linear-gradient(135deg, var(--accent), #9b59b6);
-  border:none; border-radius:12px; color:#fff;
-  font-size:15px; font-weight:600; font-family:'Syne',sans-serif;
-  cursor:pointer; transition:all 0.2s;
-  box-shadow: 0 4px 20px rgba(108,99,255,0.4);
-  letter-spacing:0.3px; margin-top:8px;
-}
-.btn-login:hover { transform:translateY(-1px); box-shadow:0 8px 28px rgba(108,99,255,0.5); }
-.btn-login:active { transform:translateY(0); }
-
-.error {
-  background: rgba(255,101,132,0.1); border:1px solid rgba(255,101,132,0.3);
-  color:#ff6584; padding:12px 14px; border-radius:10px;
-  font-size:13px; margin-bottom:18px; text-align:center;
-}
-
-.demo-creds {
-  margin-top:24px; padding:16px; background:#0a0a0f; border-radius:12px;
-  border:1px solid var(--border);
-}
-.demo-creds p { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
-.cred-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
-.cred-item {
-  background:var(--surface); border-radius:8px; padding:8px; text-align:center;
-  cursor:pointer; transition:border 0.2s; border:1px solid transparent;
-}
-.cred-item:hover { border-color:var(--accent); }
-.cred-item .role { font-size:10px; color:var(--muted); text-transform:uppercase; }
-.cred-item .user { font-size:12px; color:var(--text); font-weight:500; margin:2px 0; }
-.cred-item .pass { font-size:10px; color:var(--accent); }
-</style>
+<title>AttendX Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
 </head>
 <body>
-<div class="bg-orbs">
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
-</div>
-<div class="card">
-  <div class="logo">
-    <div class="logo-icon">📡</div>
-    <h1>AttendX</h1>
-    <p>Smart Attendance Tracking System</p>
-  </div>
+  <div class="center-card">
+    <h1 class="page-title" style="margin-top:0">AttendX</h1>
+    <p class="page-subtitle" style="margin-bottom:16px">Professional attendance platform</p>
 
-  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    {% if error %}<div class="notice">{{ error }}</div>{% endif %}
 
-  <div class="tabs">
-    <button class="tab active" onclick="setRole('admin',this)">Admin</button>
-    <button class="tab" onclick="setRole('faculty',this)">Faculty</button>
-    <button class="tab" onclick="setRole('student',this)">Student</button>
-  </div>
-
-  <form method="POST" action="/login">
-    <div class="field">
-      <label>Username</label>
-      <input type="text" name="username" id="username" placeholder="Enter username" required>
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" name="password" placeholder="Enter password" required>
-    </div>
-    <button type="submit" class="btn-login">Sign In →</button>
-  </form>
-
-  <div class="demo-creds">
-    <p>Quick Demo Login</p>
-    <div class="cred-grid">
-      <div class="cred-item" onclick="fillCreds('admin','admin123')">
-        <div class="role">Admin</div>
-        <div class="user">admin</div>
-        <div class="pass">admin123</div>
+    <form method="POST" action="/login" class="stack">
+      <div>
+        <label class="muted" style="font-size:12px">Username</label>
+        <input type="text" name="username" required placeholder="Enter username">
       </div>
-      <div class="cred-item" onclick="fillCreds('faculty1','faculty123')">
-        <div class="role">Faculty</div>
-        <div class="user">faculty1</div>
-        <div class="pass">faculty123</div>
+      <div>
+        <label class="muted" style="font-size:12px">Password</label>
+        <input type="password" name="password" required placeholder="Enter password">
       </div>
-      <div class="cred-item" onclick="fillCreds('student1','student123')">
-        <div class="role">Student</div>
-        <div class="user">student1</div>
-        <div class="pass">student123</div>
+      <button class="btn" type="submit">Sign In</button>
+    </form>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-head"><h3>Quick Demo Accounts</h3></div>
+      <div class="panel-body stack">
+        <button class="btn soft" type="button" onclick="fill('admin','admin123')">Admin</button>
+        <button class="btn soft" type="button" onclick="fill('faculty1','faculty123')">Faculty</button>
+        <button class="btn soft" type="button" onclick="fill('student1','student123')">Student</button>
       </div>
     </div>
   </div>
-</div>
 <script>
-function fillCreds(u, p) {
-  document.querySelector('[name=username]').value = u;
-  document.querySelector('[name=password]').value = p;
-}
-function setRole(role, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-}
+function fill(u,p){document.querySelector('[name=username]').value=u;document.querySelector('[name=password]').value=p;}
 </script>
 </body>
 </html>
