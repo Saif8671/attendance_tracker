@@ -2,9 +2,7 @@
 AttendX — Attendance Tracker v3
 """
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, g
-import os, csv, io, time, hashlib, secrets, threading
-import psycopg2
-from psycopg2.extras import DictCursor
+import sqlite3, os, csv, io, time, hashlib, secrets, threading
 from datetime import datetime
 from functools import lru_cache
 from collections import OrderedDict
@@ -15,60 +13,21 @@ app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 
 QR_VALID_SECONDS = 120
-# Supabase Postgres connection string (User provided credentials)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:USER%40supabase%408671@db.lnomjnooexjxlrkfgfvk.supabase.co:5432/postgres")
-
+DB_PATH = "attendance.db"
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN  = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_PHONE       = os.getenv("TWILIO_PHONE", "")
 SMS_THRESHOLD = 75
 
 # ─── DB ───────────────────────────────────────────────────────────────────────
-class DbWrapper:
-    def __init__(self, conn):
-        self.conn = conn
-        self.cur = conn.cursor(cursor_factory=DictCursor)
-
-    def execute(self, query, params=None):
-        # Quick hack: safely replace ? with %s for psycopg2 without touching the whole file
-        q = query.replace('?', '%s')
-        self.cur.execute(q, params or ())
-        return self
-
-    def fetchone(self):
-        try:
-            res = self.cur.fetchone()
-            return dict(res) if res else None
-        except psycopg2.ProgrammingError:
-            return None # no results to fetch
-
-    def fetchall(self):
-        try:
-            res = self.cur.fetchall()
-            return [dict(r) for r in res]
-        except psycopg2.ProgrammingError:
-            return []
-
-    def executescript(self, script):
-        self.cur.execute(script)
-
-    def commit(self):
-        self.conn.commit()
-
-    def close(self):
-        self.cur.close()
-        self.conn.close()
-
 def get_db():
+    """Return a per-request DB connection (reused via Flask g)."""
     if 'db' not in g:
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.autocommit = True # To mimic SQLite default behavior
-        g.db = DbWrapper(conn)
+        g.db = sqlite3.connect(DB_PATH)
+        g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA journal_mode=WAL")   # faster concurrent reads
+        g.db.execute("PRAGMA synchronous=NORMAL") # safe + faster writes
     return g.db
-
-def get_db_cursor():
-    db = get_db()
-    return db.cursor(cursor_factory=DictCursor)
 
 @app.teardown_appcontext
 def close_db(exc):
@@ -77,9 +36,10 @@ def close_db(exc):
         db.close()
 
 def get_db_standalone():
-    conn = psycopg2.connect(DATABASE_URL)
-    conn.autocommit = True
-    return DbWrapper(conn)
+    """Get a new standalone connection (for use outside request context, e.g. threads)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def get_class_from_htno(htno):
     try:
@@ -94,79 +54,73 @@ def get_class_from_htno(htno):
 
 def init_db():
     db = get_db_standalone()
-    try:
-        db.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username VARCHAR(255) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
-            role VARCHAR(50) NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            phone VARCHAR(50), 
-            email VARCHAR(255), 
-            gender VARCHAR(50), 
-            dob VARCHAR(50),
-            class_name VARCHAR(100), 
-            rollno VARCHAR(100)
-        );
-        CREATE TABLE IF NOT EXISTS classes (
-            id SERIAL PRIMARY KEY,
-            subject VARCHAR(255) NOT NULL,
-            faculty_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            class_name VARCHAR(255) NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS qr_tokens (
-            id SERIAL PRIMARY KEY,
-            token VARCHAR(255) UNIQUE NOT NULL,
-            class_id INTEGER NOT NULL,
-            faculty_id INTEGER NOT NULL,
-            created_at DOUBLE PRECISION NOT NULL,
-            expires_at DOUBLE PRECISION NOT NULL,
-            session_label VARCHAR(255),
-            is_active INTEGER DEFAULT 1
-        );
-        CREATE TABLE IF NOT EXISTS attendance (
-            id SERIAL PRIMARY KEY,
-            student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-            token_id INTEGER NOT NULL,
-            marked_at VARCHAR(255) NOT NULL,
-            status VARCHAR(50) DEFAULT 'present',
-            UNIQUE(student_id, token_id)
-        );
-        """)
-    except Exception as e:
-        print(f"Init table error: {e}")
+    db.executescript("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL,
+        name TEXT NOT NULL,
+        phone TEXT, email TEXT, gender TEXT, dob TEXT,
+        class_name TEXT, rollno TEXT
+    );
+    CREATE TABLE IF NOT EXISTS classes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subject TEXT NOT NULL,
+        faculty_id INTEGER NOT NULL,
+        class_name TEXT NOT NULL,
+        FOREIGN KEY(faculty_id) REFERENCES users(id)
+    );
+    CREATE TABLE IF NOT EXISTS qr_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        token TEXT UNIQUE NOT NULL,
+        class_id INTEGER NOT NULL,
+        faculty_id INTEGER NOT NULL,
+        created_at REAL NOT NULL,
+        expires_at REAL NOT NULL,
+        session_label TEXT,
+        is_active INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS attendance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        class_id INTEGER NOT NULL,
+        token_id INTEGER NOT NULL,
+        marked_at TEXT NOT NULL,
+        status TEXT DEFAULT 'present',
+        UNIQUE(student_id, token_id),
+        FOREIGN KEY(student_id) REFERENCES users(id),
+        FOREIGN KEY(class_id) REFERENCES classes(id)
+    );
+    """)
 
     # ── Indexes (biggest single performance win) ──────────────────────────────
-    try:
-        db.executescript("""
-            CREATE INDEX IF NOT EXISTS idx_users_role       ON users(role);
-            CREATE INDEX IF NOT EXISTS idx_users_class      ON users(class_name);
-            CREATE INDEX IF NOT EXISTS idx_users_username   ON users(username);
-            CREATE INDEX IF NOT EXISTS idx_att_student      ON attendance(student_id, class_id);
-            CREATE INDEX IF NOT EXISTS idx_att_token        ON attendance(token_id);
-            CREATE INDEX IF NOT EXISTS idx_att_status       ON attendance(student_id, class_id, status);
-            CREATE INDEX IF NOT EXISTS idx_qr_class_active  ON qr_tokens(class_id, is_active);
-            CREATE INDEX IF NOT EXISTS idx_qr_faculty       ON qr_tokens(faculty_id);
-            CREATE INDEX IF NOT EXISTS idx_qr_token         ON qr_tokens(token);
-            CREATE INDEX IF NOT EXISTS idx_classes_faculty   ON classes(faculty_id);
-            CREATE INDEX IF NOT EXISTS idx_classes_classname ON classes(class_name);
-        """)
-    except Exception as e:
-        print(f"Init index error: {e}")
-    
-    # In Postgres columns are added differently and checking for them requires querying information_schema
-    # Assuming fresh DB for now or handled via manual migration in postgres
+    db.executescript("""
+        CREATE INDEX IF NOT EXISTS idx_users_role       ON users(role);
+        CREATE INDEX IF NOT EXISTS idx_users_class      ON users(class_name);
+        CREATE INDEX IF NOT EXISTS idx_users_username   ON users(username);
+        CREATE INDEX IF NOT EXISTS idx_att_student      ON attendance(student_id, class_id);
+        CREATE INDEX IF NOT EXISTS idx_att_token        ON attendance(token_id);
+        CREATE INDEX IF NOT EXISTS idx_att_status       ON attendance(student_id, class_id, status);
+        CREATE INDEX IF NOT EXISTS idx_qr_class_active  ON qr_tokens(class_id, is_active);
+        CREATE INDEX IF NOT EXISTS idx_qr_faculty       ON qr_tokens(faculty_id);
+        CREATE INDEX IF NOT EXISTS idx_qr_token         ON qr_tokens(token);
+        CREATE INDEX IF NOT EXISTS idx_classes_faculty   ON classes(faculty_id);
+        CREATE INDEX IF NOT EXISTS idx_classes_classname ON classes(class_name);
+    """)
 
-    # Only seed the admin account if it doesn't exist
+    # Migrate old DBs
+    for col, typedef in [("email","TEXT"),("gender","TEXT"),("dob","TEXT")]:
+        try: db.execute(f"ALTER TABLE users ADD COLUMN {col} {typedef}")
+        except: pass
+
+    # Only seed the admin account — all faculty, students, and subjects
+    # are created dynamically through the admin dashboard.
     pw = lambda p: hashlib.sha256(p.encode()).hexdigest()
     try:
-        db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (username) DO NOTHING",
+        db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (?,?,?,?,?,?,?,?,?,?)",
             ("admin", pw("admin123"), "admin", "Administrator", None, None, None, None, None, None))
-    except Exception as e:
-        print(f"Admin init error: {e}")
-        pass
+    except: pass
 
     db.commit()
     db.close()
@@ -186,13 +140,13 @@ def send_sms(to, msg):
 
 def check_and_notify(student_id, class_id):
     db = get_db()
-    total   = db.execute("SELECT COUNT(*) as c FROM qr_tokens WHERE class_id=%s AND is_active=0", (class_id,)).fetchone()["c"]
-    present = db.execute("SELECT COUNT(*) as c FROM attendance WHERE student_id=%s AND class_id=%s AND status='present'", (student_id, class_id)).fetchone()["c"]
+    total   = db.execute("SELECT COUNT(*) as c FROM qr_tokens WHERE class_id=? AND is_active=0", (class_id,)).fetchone()["c"]
+    present = db.execute("SELECT COUNT(*) as c FROM attendance WHERE student_id=? AND class_id=? AND status='present'", (student_id, class_id)).fetchone()["c"]
     if total > 0:
         pct = (present / total) * 100
         if pct < SMS_THRESHOLD:
-            student = db.execute("SELECT * FROM users WHERE id=%s", (student_id,)).fetchone()
-            cls     = db.execute("SELECT * FROM classes WHERE id=%s", (class_id,)).fetchone()
+            student = db.execute("SELECT * FROM users WHERE id=?", (student_id,)).fetchone()
+            cls     = db.execute("SELECT * FROM classes WHERE id=?", (class_id,)).fetchone()
             if student and student["phone"]:
                 send_sms(student["phone"],
                     f"Attendance Alert: Dear {student['name']}, your attendance in {cls['subject']} is {pct:.1f}% ({present}/{total}). Min required: {SMS_THRESHOLD}%.")
@@ -210,7 +164,7 @@ def login():
     username = request.form["username"].strip().lower()
     password = hash_pw(request.form["password"])
     db = get_db()
-    user = db.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password)).fetchone()
+    user = db.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password)).fetchone()
 
     if user:
         session["user_id"] = user["id"]
@@ -235,7 +189,7 @@ def reset_password(user_id):
     if not new_pw:
         return redirect(url_for("dashboard_admin") + "?msg=Password+cannot+be+empty")
     db = get_db()
-    db.execute("UPDATE users SET password=%s WHERE id=%s", (hash_pw(new_pw), user_id))
+    db.execute("UPDATE users SET password=? WHERE id=?", (hash_pw(new_pw), user_id))
     db.commit()
 
     return redirect(url_for("dashboard_admin") + "?msg=Password+reset+successfully")
@@ -246,13 +200,13 @@ def reset_my_password():
     old_pw  = request.form.get("old_password","")
     new_pw  = request.form.get("new_password","").strip()
     db = get_db()
-    user = db.execute("SELECT * FROM users WHERE id=%s AND password=%s", (session["user_id"], hash_pw(old_pw))).fetchone()
+    user = db.execute("SELECT * FROM users WHERE id=? AND password=?", (session["user_id"], hash_pw(old_pw))).fetchone()
     if not user:
 
         role = session["role"]
         return render_template(f"{role}.html", pw_error="Current password is incorrect",
                                **get_dashboard_data(role))
-    db.execute("UPDATE users SET password=%s WHERE id=%s", (hash_pw(new_pw), session["user_id"]))
+    db.execute("UPDATE users SET password=? WHERE id=?", (hash_pw(new_pw), session["user_id"]))
     db.commit()
     return redirect(url_for(f"dashboard_{session['role']}") + "?msg=Password+changed+successfully")
 
@@ -260,7 +214,7 @@ def get_dashboard_data(role):
     """Helper to re-fetch data when re-rendering with an error"""
     db = get_db()
     if role == "student":
-        student = db.execute("SELECT * FROM users WHERE id=%s", (session["user_id"],)).fetchone()
+        student = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
         attendance = db.execute("""
             SELECT c.subject, c.class_name, c.id as class_id,
                    COUNT(CASE WHEN a.status='present' THEN 1 END) as present_count,
@@ -324,7 +278,7 @@ def add_user():
     if session.get("role") != "admin": return redirect("/")
     db = get_db()
     try:
-        db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (request.form["username"].strip(), hash_pw(request.form["password"]),
              request.form["role"], request.form["name"].strip(),
              request.form.get("phone",""), request.form.get("email",""),
@@ -343,12 +297,12 @@ def add_user():
 def delete_user(user_id):
     if session.get("role") != "admin": return redirect("/")
     db = get_db()
-    u = db.execute("SELECT role FROM users WHERE id=%s", (user_id,)).fetchone()
+    u = db.execute("SELECT role FROM users WHERE id=?", (user_id,)).fetchone()
     tab = "teachers" if u and u["role"] == "faculty" else "students"
-    db.execute("DELETE FROM attendance WHERE student_id=%s", (user_id,))
-    db.execute("DELETE FROM qr_tokens WHERE faculty_id=%s", (user_id,))
-    db.execute("DELETE FROM classes WHERE faculty_id=%s", (user_id,))
-    db.execute("DELETE FROM users WHERE id=%s", (user_id,))
+    db.execute("DELETE FROM attendance WHERE student_id=?", (user_id,))
+    db.execute("DELETE FROM qr_tokens WHERE faculty_id=?", (user_id,))
+    db.execute("DELETE FROM classes WHERE faculty_id=?", (user_id,))
+    db.execute("DELETE FROM users WHERE id=?", (user_id,))
     db.commit()
     return redirect(url_for("dashboard_admin") + f"?msg=User+deleted&tab={tab}")
 
@@ -358,7 +312,7 @@ def add_subject():
     if session.get("role") != "admin": return redirect("/")
     db = get_db()
     try:
-        db.execute("INSERT INTO classes (subject,faculty_id,class_name) VALUES (%s,%s,%s)",
+        db.execute("INSERT INTO classes (subject,faculty_id,class_name) VALUES (?,?,?)",
             (request.form["subject"], int(request.form["faculty_id"]), request.form["class_name"]))
         db.commit()
     except: pass
@@ -369,9 +323,9 @@ def add_subject():
 def delete_subject(class_id):
     if session.get("role") != "admin": return redirect("/")
     db = get_db()
-    db.execute("DELETE FROM attendance WHERE class_id=%s", (class_id,))
-    db.execute("DELETE FROM qr_tokens WHERE class_id=%s", (class_id,))
-    db.execute("DELETE FROM classes WHERE id=%s", (class_id,))
+    db.execute("DELETE FROM attendance WHERE class_id=?", (class_id,))
+    db.execute("DELETE FROM qr_tokens WHERE class_id=?", (class_id,))
+    db.execute("DELETE FROM classes WHERE id=?", (class_id,))
     db.commit(); db.close()
     return redirect(url_for("dashboard_admin") + "?msg=Subject+deleted&tab=subjects")
 
@@ -425,13 +379,13 @@ def import_csv():
 
         pw_hash = default_pw_hash if pwd == "student123" else hash_pw(pwd)
         try:
-            db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (uname, pw_hash, role, name, phone, email, gender, dob, class_name, htno or uname))
             success += 1
         except sqlite3.IntegrityError:
             alt = uname + "_" + str(i)
             try:
-                db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                db.execute("INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (?,?,?,?,?,?,?,?,?,?)",
                     (alt, pw_hash, role, name, phone, email, gender, dob, class_name, htno or uname))
                 success += 1
             except:
@@ -482,17 +436,17 @@ def manual_attendance_submit():
     # Create a virtual token for manual entry if no real session exists
     token = f"MANUAL_{student_id}_{class_id}_{session_date}_{secrets.token_hex(4)}"
     now   = time.time()
-    db.execute("INSERT INTO qr_tokens (token,class_id,faculty_id,created_at,expires_at,session_label,is_active) VALUES (%s,%s,%s,%s,%s,%s,0)",
+    db.execute("INSERT INTO qr_tokens (token,class_id,faculty_id,created_at,expires_at,session_label,is_active) VALUES (?,?,?,?,?,?,0)",
                (token, class_id, 1, now, now, f"Manual Entry {session_date}", 0))
-    token_id = db.execute("SELECT id FROM qr_tokens WHERE token=%s", (token,)).fetchone()["id"]
+    token_id = db.execute("SELECT id FROM qr_tokens WHERE token=?", (token,)).fetchone()["id"]
 
     try:
-        db.execute("INSERT INTO attendance (student_id,class_id,token_id,marked_at,status) VALUES (%s,%s,%s,%s,%s)",
+        db.execute("INSERT INTO attendance (student_id,class_id,token_id,marked_at,status) VALUES (?,?,?,?,?)",
                    (student_id, class_id, token_id, datetime.now().isoformat(), status))
         db.commit()
         msg = "Attendance+marked+successfully"
     except sqlite3.IntegrityError:
-        db.execute("UPDATE attendance SET status=%s, marked_at=%s WHERE student_id=%s AND token_id=%s",
+        db.execute("UPDATE attendance SET status=?, marked_at=? WHERE student_id=? AND token_id=?",
                    (status, datetime.now().isoformat(), student_id, token_id))
         db.commit()
         msg = "Attendance+updated"
@@ -535,7 +489,7 @@ def attendance_report():
 def get_sessions_for_class(class_id):
     if session.get("role") != "admin": return jsonify([])
     db = get_db()
-    rows = db.execute("SELECT id, session_label, created_at FROM qr_tokens WHERE class_id=%s ORDER BY created_at DESC", (class_id,)).fetchall()
+    rows = db.execute("SELECT id, session_label, created_at FROM qr_tokens WHERE class_id=? ORDER BY created_at DESC", (class_id,)).fetchall()
 
     return jsonify([dict(r) for r in rows])
 
@@ -543,9 +497,9 @@ def get_sessions_for_class(class_id):
 def get_students_for_class(class_id):
     if session.get("role") != "admin": return jsonify([])
     db = get_db()
-    cls = db.execute("SELECT class_name FROM classes WHERE id=%s", (class_id,)).fetchone()
+    cls = db.execute("SELECT class_name FROM classes WHERE id=?", (class_id,)).fetchone()
     if not cls: return jsonify([])
-    rows = db.execute("SELECT id, name, rollno FROM users WHERE class_name=%s AND role='student' ORDER BY rollno", (cls["class_name"],)).fetchall()
+    rows = db.execute("SELECT id, name, rollno FROM users WHERE class_name=? AND role='student' ORDER BY rollno", (cls["class_name"],)).fetchall()
 
     return jsonify([dict(r) for r in rows])
 
@@ -554,7 +508,7 @@ def get_students_for_class(class_id):
 def dashboard_faculty():
     if session.get("role") != "faculty": return redirect("/")
     db = get_db()
-    classes = db.execute("SELECT * FROM classes WHERE faculty_id=%s", (session["user_id"],)).fetchall()
+    classes = db.execute("SELECT * FROM classes WHERE faculty_id=?", (session["user_id"],)).fetchall()
     recent_tokens = db.execute("""
         SELECT q.*, c.subject, c.class_name,
                (SELECT COUNT(*) FROM attendance a WHERE a.token_id=q.id) as marked_count
@@ -581,7 +535,7 @@ def generate_qr():
         (class_id, session["user_id"])
     ).fetchone()
 
-    db.execute("UPDATE qr_tokens SET is_active=0 WHERE class_id=%s AND faculty_id=%s",
+    db.execute("UPDATE qr_tokens SET is_active=0 WHERE class_id=? AND faculty_id=?",
                (class_id, session["user_id"]))
     db.commit()
 
@@ -591,7 +545,7 @@ def generate_qr():
 
     token = secrets.token_urlsafe(32)
     now   = time.time()
-    db.execute("INSERT INTO qr_tokens (token,class_id,faculty_id,created_at,expires_at,session_label,is_active) VALUES (%s,%s,%s,%s,%s,%s,1)",
+    db.execute("INSERT INTO qr_tokens (token,class_id,faculty_id,created_at,expires_at,session_label,is_active) VALUES (?,?,?,?,?,?,1)",
                (token, class_id, session["user_id"], now, now + QR_VALID_SECONDS, label))
     db.commit()
     return redirect(url_for("show_qr", token=token))
@@ -599,7 +553,7 @@ def generate_qr():
 @app.route("/qr/<token>")
 def show_qr(token):
     db = get_db()
-    t = db.execute("SELECT q.*, c.subject, c.class_name FROM qr_tokens q JOIN classes c ON q.class_id=c.id WHERE q.token=%s", (token,)).fetchone()
+    t = db.execute("SELECT q.*, c.subject, c.class_name FROM qr_tokens q JOIN classes c ON q.class_id=c.id WHERE q.token=?", (token,)).fetchone()
 
     if not t: return "Invalid token", 404
     return render_template("qr_display.html", token=dict(t), now=time.time(), qr_valid=QR_VALID_SECONDS)
@@ -622,15 +576,15 @@ def qr_image(token):
 def faculty_attendance(class_id):
     if session.get("role") != "faculty": return redirect("/")
     db = get_db()
-    cls = db.execute("SELECT * FROM classes WHERE id=%s AND faculty_id=%s", (class_id, session["user_id"])).fetchone()
+    cls = db.execute("SELECT * FROM classes WHERE id=? AND faculty_id=?", (class_id, session["user_id"])).fetchone()
     if not cls: return redirect(url_for("dashboard_faculty"))
-    sessions_list = db.execute("SELECT * FROM qr_tokens WHERE class_id=%s ORDER BY created_at DESC", (class_id,)).fetchall()
+    sessions_list = db.execute("SELECT * FROM qr_tokens WHERE class_id=? ORDER BY created_at DESC", (class_id,)).fetchall()
     students = db.execute("""
         SELECT u.*, COUNT(CASE WHEN a.status='present' THEN 1 END) as present_count
         FROM users u LEFT JOIN attendance a ON a.student_id=u.id AND a.class_id=?
         WHERE u.class_name=? AND u.role='student' GROUP BY u.id ORDER BY u.rollno
     """, (class_id, cls["class_name"])).fetchall()
-    total_sessions = db.execute("SELECT COUNT(*) as c FROM qr_tokens WHERE class_id=%s AND is_active=0", (class_id,)).fetchone()["c"]
+    total_sessions = db.execute("SELECT COUNT(*) as c FROM qr_tokens WHERE class_id=? AND is_active=0", (class_id,)).fetchone()["c"]
 
     return render_template("faculty_attendance.html", cls=dict(cls), sessions=sessions_list,
                            students=students, total=total_sessions)
@@ -640,7 +594,7 @@ def faculty_attendance(class_id):
 def dashboard_student():
     if session.get("role") != "student": return redirect("/")
     db = get_db()
-    student = db.execute("SELECT * FROM users WHERE id=%s", (session["user_id"],)).fetchone()
+    student = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
     # Dynamic: subjects come from admin-configured classes for this student's class
     attendance = db.execute("""
         SELECT c.subject, c.class_name, c.id as class_id,
@@ -674,20 +628,20 @@ def scan_qr(token):
     if session.get("role") != "student":
         return render_template("scan_result.html", success=False, msg="Only students can mark attendance.")
     db = get_db()
-    t = db.execute("SELECT q.*, c.subject, c.class_name FROM qr_tokens q JOIN classes c ON q.class_id=c.id WHERE q.token=%s AND q.is_active=1", (token,)).fetchone()
+    t = db.execute("SELECT q.*, c.subject, c.class_name FROM qr_tokens q JOIN classes c ON q.class_id=c.id WHERE q.token=? AND q.is_active=1", (token,)).fetchone()
     if not t:
 
         return render_template("scan_result.html", success=False, msg="Invalid or expired QR code.")
     if time.time() > t["expires_at"]:
-        db.execute("UPDATE qr_tokens SET is_active=0 WHERE token=%s", (token,))
+        db.execute("UPDATE qr_tokens SET is_active=0 WHERE token=?", (token,))
         db.commit()
         return render_template("scan_result.html", success=False, msg="QR Code expired. Ask faculty to generate a new one.")
-    student = db.execute("SELECT * FROM users WHERE id=%s", (session["user_id"],)).fetchone()
+    student = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
     if student["class_name"] != t["class_name"]:
 
         return render_template("scan_result.html", success=False, msg="You are not enrolled in this class.")
     try:
-        db.execute("INSERT INTO attendance (student_id,class_id,token_id,marked_at,status) VALUES (%s,%s,%s,%s,%s)",
+        db.execute("INSERT INTO attendance (student_id,class_id,token_id,marked_at,status) VALUES (?,?,?,?,?)",
                    (session["user_id"], t["class_id"], t["id"], datetime.now().isoformat(), "present"))
         db.commit()
         check_and_notify(session["user_id"], t["class_id"])
@@ -702,7 +656,7 @@ def scan_qr(token):
 @app.route("/api/token_status/<token>")
 def token_status(token):
     db = get_db()
-    t  = db.execute("SELECT * FROM qr_tokens WHERE token=%s", (token,)).fetchone()
+    t  = db.execute("SELECT * FROM qr_tokens WHERE token=?", (token,)).fetchone()
 
     if not t: return jsonify({"valid": False})
     remaining = max(0, t["expires_at"] - time.time())
@@ -724,14 +678,14 @@ def notify_absentees(token_id, class_id, class_name, subject):
     try:
         # All students in this class
         all_students = db.execute(
-            "SELECT id, name, phone FROM users WHERE class_name=%s AND role='student'",
+            "SELECT id, name, phone FROM users WHERE class_name=? AND role='student'",
             (class_name,)
         ).fetchall()
 
         # Students who already scanned (present)
         present_ids = set(
             r["student_id"] for r in
-            db.execute("SELECT student_id FROM attendance WHERE token_id=%s", (token_id,)).fetchall()
+            db.execute("SELECT student_id FROM attendance WHERE token_id=?", (token_id,)).fetchall()
         )
 
         absent_count = 0
@@ -742,7 +696,7 @@ def notify_absentees(token_id, class_id, class_name, subject):
             # Insert absent record (ignore if already exists)
             try:
                 db.execute(
-                    "INSERT INTO attendance (student_id,class_id,token_id,marked_at,status) VALUES (%s,%s,%s,%s,%s)",
+                    "INSERT INTO attendance (student_id,class_id,token_id,marked_at,status) VALUES (?,?,?,?,?)",
                     (s["id"], class_id, token_id, datetime.now().isoformat(), "absent")
                 )
                 absent_count += 1
@@ -753,7 +707,7 @@ def notify_absentees(token_id, class_id, class_name, subject):
         db.commit()
 
         # Pre-compute total sessions ONCE (same for every student in this class)
-        total = db.execute("SELECT COUNT(*) as c FROM qr_tokens WHERE class_id=%s AND is_active=0",
+        total = db.execute("SELECT COUNT(*) as c FROM qr_tokens WHERE class_id=? AND is_active=0",
                            (class_id,)).fetchone()["c"]
 
         # Send SMS to absent students (batched after DB work)
@@ -768,7 +722,7 @@ def notify_absentees(token_id, class_id, class_name, subject):
             # Check if overall attendance dropped below threshold
             if total > 0:
                 present = db.execute(
-                    "SELECT COUNT(*) as c FROM attendance WHERE student_id=%s AND class_id=%s AND status='present'",
+                    "SELECT COUNT(*) as c FROM attendance WHERE student_id=? AND class_id=? AND status='present'",
                     (s["id"], class_id)).fetchone()["c"]
                 pct = (present / total) * 100
                 if pct < SMS_THRESHOLD:
@@ -810,7 +764,7 @@ def close_session():
 
     already_closed = t["is_active"] == 0
     if not already_closed:
-        db.execute("UPDATE qr_tokens SET is_active=0 WHERE token=%s", (token_str,))
+        db.execute("UPDATE qr_tokens SET is_active=0 WHERE token=?", (token_str,))
         db.commit()
 
     token_id   = t["id"]
