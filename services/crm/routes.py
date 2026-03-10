@@ -50,7 +50,16 @@ def get_dashboard_data(role):
         ).fetchall()
         return {"student": dict(student), "attendance": attendance, "recent": recent}
 
-    return {}\n\n\ndef _sms_threshold():\n    if has_app_context():\n        return _sms_threshold()\n    return int(os.getenv("SMS_THRESHOLD", "75"))\n\n\n# ---- Admin ----
+    return {}
+
+
+def _sms_threshold():
+    if has_app_context():
+        return current_app.config["SMS_THRESHOLD"]
+    return int(os.getenv("SMS_THRESHOLD", "75"))
+
+
+# ---- Admin ----
 
 @crm_bp.route("/admin")
 def dashboard_admin():
@@ -590,7 +599,7 @@ def check_and_notify(student_id, class_id):
             if student and student.get("phone"):
                 send_sms(
                     student["phone"],
-                    f"Attendance Alert: Dear {student['name']}, your attendance in {cls['subject']} is {pct:.1f}% ({present}/{total}). Min required: {current_app.config['SMS_THRESHOLD']}%.",
+                    f"Attendance Alert: Dear {student['name']}, your attendance in {cls['subject']} is {pct:.1f}% ({present}/{total}). Min required: {_sms_threshold()}%.",
                 )
 
 
@@ -643,7 +652,7 @@ def notify_absentees(token_id, class_id, class_name, subject):
                 if pct < _sms_threshold():
                     send_sms(
                         s["phone"],
-                        f"Low Attendance Warning: Dear {s['name']}, your attendance in {subject} is now {pct:.1f}% ({present}/{total} classes). Minimum required: {current_app.config['SMS_THRESHOLD']}%.",
+                        f"Low Attendance Warning: Dear {s['name']}, your attendance in {subject} is now {pct:.1f}% ({present}/{total} classes). Minimum required: {_sms_threshold()}%.",
                     )
     finally:
         db.close()
@@ -679,5 +688,7 @@ def close_session():
         daemon=True,
     ).start()
     return jsonify({"ok": True, "already_closed": already_closed})
+
+
 
 
