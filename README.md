@@ -15,7 +15,7 @@ A full-featured attendance tracking system with QR-based sessions, three role da
 
 Target layout
 ```
-Frontend (React)
+Frontend 
       |
 API Gateway
       |
@@ -45,7 +45,7 @@ attendx/
 
 Notes
 - The app runs as a single Flask process, but routes are split into service modules.
-- React frontend is not implemented yet; current UI is server-rendered.
+
 
 ## Setup Guide
 
