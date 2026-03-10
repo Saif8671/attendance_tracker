@@ -1,78 +1,137 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Faculty Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
-<script defer src="{{ url_for('static', filename='site.js') }}"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendX — Faculty Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  <script defer src="{{ url_for('static', filename='site.js') }}"></script>
 </head>
+
 <body>
-<div class="shell">
-  <aside class="sidebar" id="appSidebar">
-    <div class="brand"><h1>AttendX</h1><p>Faculty</p></div>
-    <a class="nav-link active" href="/faculty">Dashboard</a>
-    <a class="nav-link" href="#sessions">Recent Sessions</a>
-    <a class="logout-link" href="/logout">Logout</a>
-  </aside>
-
-  <main class="main">
-    <div class="page-header">
-      <div>
-        <button id="mobileMenuBtn" class="mobile-toggle" type="button">Menu</button>
-        <h2 class="page-title">Faculty Dashboard</h2>
-        <p class="page-subtitle">Welcome, {{ session.name }}. Generate live QR sessions and track submissions.</p>
+  <div class="shell">
+    <aside class="sidebar" id="appSidebar">
+      <div class="brand">
+        <h1>AttendX</h1>
+        <p>Faculty Portal</p>
       </div>
-      <a class="btn" href="#classGrid">New Session</a>
-    </div>
+      <a class="nav-link active" href="/faculty">📊 Dashboard</a>
+      <a class="nav-link" href="#sessions">📋 Recent Sessions</a>
+      <a class="logout-link" href="/logout">🚪 Logout</a>
+    </aside>
 
-    {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}
-
-    <div class="panel" id="classGrid">
-      <div class="panel-head"><h3>Your Classes</h3></div>
-      <div class="panel-body grid-3">
-        {% for cls in classes %}
-        <div class="card" style="padding:14px">
-          <h3 style="margin:0 0 6px 0">{{ cls.subject }}</h3>
-          <p class="muted" style="margin:0 0 12px 0">{{ cls.class_name }}</p>
-          <form method="POST" action="/faculty/generate_qr" class="stack">
-            <input type="hidden" name="class_id" value="{{ cls.id }}">
-            <input type="text" name="label" placeholder="Session label (optional)">
-            <button class="btn" type="submit">Generate QR</button>
-          </form>
-          <a class="btn soft" style="margin-top:8px" href="/faculty/attendance/{{ cls.id }}">View Attendance</a>
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <button id="mobileMenuBtn" class="mobile-toggle" type="button">☰ Menu</button>
+          <h2 class="page-title">Faculty Dashboard</h2>
+          <p class="page-subtitle">Welcome back, <strong style="color:var(--text)">{{ session.name }}</strong> —
+            Generate live QR sessions to record attendance.</p>
         </div>
-        {% endfor %}
       </div>
-    </div>
 
-    <div class="panel" id="sessions" style="margin-top:14px">
-      <div class="panel-head">
-        <h3>Recent QR Sessions</h3>
-        <input type="text" id="sessionSearch" oninput="filterTable('sessionSearch','sessionsTable')" placeholder="Search sessions" style="max-width:220px">
+      {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}
+
+      <!-- Summary strip -->
+      <div class="metric-grid" style="margin-bottom:20px">
+        <div class="metric cyan">
+          <div class="label">Classes</div>
+          <div class="value">{{ classes | length }}</div>
+          <div class="icon">📚</div>
+        </div>
+        <div class="metric violet">
+          <div class="label">Total Sessions</div>
+          <div class="value">{{ recent_tokens | length }}</div>
+          <div class="icon">📡</div>
+        </div>
+        <div class="metric emerald">
+          <div class="label">Active Now</div>
+          <div class="value">{{ recent_tokens | selectattr('is_active','eq',1) | list | length }}</div>
+          <div class="icon">🟢</div>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table id="sessionsTable">
-          <thead><tr><th>Subject</th><th>Class</th><th>Label</th><th>Marked</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            {% for t in recent_tokens %}
-            {% set expired = now > t.expires_at %}
-            {% set active = t.is_active == 1 and not expired %}
-            <tr>
-              <td>{{ t.subject }}</td>
-              <td>{{ t.class_name }}</td>
-              <td>{{ t.session_label }}</td>
-              <td>{{ t.marked_count }}</td>
-              <td><span class="badge">{{ 'Active' if active else 'Expired' }}</span></td>
-              <td>{% if active %}<a class="btn small" href="/qr/{{ t.token }}">Open QR</a>{% else %}<span class="muted">Closed</span>{% endif %}</td>
-            </tr>
+
+      <!-- Class cards -->
+      <div class="panel" id="classGrid" style="margin-bottom:16px">
+        <div class="panel-head">
+          <h3>Your Classes</h3>
+        </div>
+        <div class="panel-body">
+          {% if classes %}
+          <div class="card-grid">
+            {% for cls in classes %}
+            <div class="card">
+              <h3 style="margin-bottom:4px;font-size:1.05rem">{{ cls.subject }}</h3>
+              <p class="muted" style="font-size:.82rem;margin-bottom:16px">{{ cls.class_name }}</p>
+              <form method="POST" action="/faculty/generate_qr" style="margin-bottom:10px">
+                <input type="hidden" name="class_id" value="{{ cls.id }}">
+                <input type="text" name="label" placeholder="Session label (optional)" style="margin-bottom:8px">
+                <button class="btn full" type="submit">📡 Start QR Session</button>
+              </form>
+              <a class="btn soft full" href="/faculty/attendance/{{ cls.id }}">📋 View Attendance</a>
+            </div>
             {% endfor %}
-          </tbody>
-        </table>
+          </div>
+          {% else %}
+          <p class="muted" style="text-align:center;padding:30px">No classes assigned yet. Contact admin.</p>
+          {% endif %}
+        </div>
       </div>
-    </div>
-  </main>
-</div>
+
+      <!-- Recent sessions table -->
+      <div class="panel" id="sessions">
+        <div class="panel-head">
+          <h3>Recent QR Sessions</h3>
+          <input type="text" id="sessionSearch" placeholder="Search sessions…"
+            oninput="filterTable('sessionSearch','sessionsTable')" style="max-width:200px">
+        </div>
+        <div class="table-wrap">
+          <table id="sessionsTable">
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>Class</th>
+                <th>Session Label</th>
+                <th>Scanned</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in recent_tokens %}
+              {% set expired = now > t.expires_at %}
+              {% set active = t.is_active == 1 and not expired %}
+              <tr>
+                <td><strong>{{ t.subject }}</strong></td>
+                <td>{{ t.class_name }}</td>
+                <td>{{ t.session_label or '—' }}</td>
+                <td>{{ t.marked_count }}</td>
+                <td>
+                  <span class="badge {% if active %}active{% else %}danger{% endif %}">
+                    {{ '🟢 Live' if active else '🔴 Closed' }}
+                  </span>
+                </td>
+                <td>
+                  {% if active %}
+                  <a class="btn sm" href="/qr/{{ t.token }}">Open QR</a>
+                  {% else %}
+                  <span class="muted">Closed</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="muted" style="text-align:center;padding:20px">No sessions yet. Start a QR session
+                  above.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
 </body>
+
 </html>

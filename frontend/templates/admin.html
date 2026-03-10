@@ -1,15 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard</title>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-    rel="stylesheet">
+  <title>AttendX — Admin Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
   <script defer src="{{ url_for('static', filename='site.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -17,374 +15,560 @@
     <aside class="sidebar" id="appSidebar">
       <div class="brand">
         <h1>AttendX</h1>
-        <p>Admin</p>
+        <p>Admin Panel</p>
       </div>
-      <a class="nav-link active" href="/admin">Dashboard</a>
-      <a class="nav-link" href="#" onclick="activateAdminTab('students');return false;">Students</a>
-      <a class="nav-link" href="#" onclick="activateAdminTab('teachers');return false;">Faculty</a>
-      <a class="nav-link" href="#" onclick="activateAdminTab('subjects');return false;">Subjects</a>
-      <a class="nav-link" href="#" onclick="activateAdminTab('reports');loadReports();return false;">Reports</a>
-      <a class="logout-link" href="/logout">Logout</a>
+      <a class="nav-link" href="#" onclick="activateTab('overview');return false;">📊 Overview</a>
+      <a class="nav-link" href="#" onclick="activateTab('students');return false;">🎓 Students</a>
+      <a class="nav-link" href="#" onclick="activateTab('teachers');return false;">👨‍🏫 Faculty</a>
+      <a class="nav-link" href="#" onclick="activateTab('subjects');return false;">📚 Classes</a>
+      <a class="nav-link" href="#" onclick="activateTab('manual');return false;">✏️ Manual Entry</a>
+      <a class="nav-link" href="#" onclick="activateTab('import');return false;">📥 Import CSV</a>
+      <a class="nav-link" href="#" onclick="activateTab('reports');loadReports();return false;">📈 Reports</a>
+      <a class="logout-link" href="/logout">🚪 Logout</a>
     </aside>
 
     <main class="main" id="adminTabs">
       <div class="page-header">
         <div>
-          <button id="mobileMenuBtn" class="mobile-toggle" type="button">Menu</button>
+          <button id="mobileMenuBtn" class="mobile-toggle" type="button">☰ Menu</button>
           <h2 class="page-title">Admin Control Center</h2>
-          <p class="page-subtitle">Manage users, classes, imports, and attendance workflows.</p>
+          <p class="page-subtitle">Manage users, classes, attendance records and system analytics.</p>
         </div>
       </div>
 
-      {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}
-
+      {% if msg %}<div class="notice {% if 'Error' in msg %}error{% endif %}">{{ msg.replace('+',' ') }}</div>{% endif
+      %}
       {% if csv_errors %}
-      <div class="notice">
+      <div class="notice error">
         <strong>CSV import warnings:</strong>
-        <ul style="margin:8px 0 0 18px;padding:0">
-          {% for e in csv_errors %}<li>{{ e }}</li>{% endfor %}
-        </ul>
+        <ul style="margin:8px 0 0 18px">{% for e in csv_errors %}<li>{{ e }}</li>{% endfor %}</ul>
       </div>
       {% endif %}
 
-      <div class="tabs">
+      <!-- Tabs navigation -->
+      <div class="tabs" id="tabNav">
         <button class="tab-btn" data-tab="overview">Overview</button>
         <button class="tab-btn" data-tab="students">Students</button>
         <button class="tab-btn" data-tab="teachers">Faculty</button>
-        <button class="tab-btn" data-tab="subjects">Subjects</button>
-        <button class="tab-btn" data-tab="manual">Manual Attendance</button>
+        <button class="tab-btn" data-tab="subjects">Classes</button>
+        <button class="tab-btn" data-tab="manual">Manual</button>
         <button class="tab-btn" data-tab="import">Import CSV</button>
         <button class="tab-btn" data-tab="reports" onclick="loadReports()">Reports</button>
       </div>
 
+      <!-- ── OVERVIEW TAB ──────────────────────────────────────────── -->
       <section class="tab-pane" data-pane="overview">
-        <div class="grid-4" style="margin-bottom:14px">
-          <div class="metric">
-            <div class="label">Students</div>
-            <div class="value">{{ stats.students }}</div>
+        <div class="metric-grid">
+          <div class="metric cyan">
+            <div class="label">Total Students</div>
+            <div class="value" data-count="{{ stats.students }}">{{ stats.students }}</div>
+            <div class="icon">🎓</div>
           </div>
-          <div class="metric">
-            <div class="label">Faculty</div>
-            <div class="value">{{ stats.faculty }}</div>
+          <div class="metric violet">
+            <div class="label">Total Faculty</div>
+            <div class="value" data-count="{{ stats.faculty }}">{{ stats.faculty }}</div>
+            <div class="icon">👨‍🏫</div>
           </div>
-          <div class="metric">
-            <div class="label">Subjects</div>
-            <div class="value">{{ stats.classes }}</div>
+          <div class="metric emerald">
+            <div class="label">Classes</div>
+            <div class="value" data-count="{{ stats.classes }}">{{ stats.classes }}</div>
+            <div class="icon">📚</div>
           </div>
-          <div class="metric">
-            <div class="label">Sessions</div>
-            <div class="value">{{ stats.sessions }}</div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Class Health Snapshot</h3>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Roll</th>
-                  <th>Class</th>
-                  <th>Attendance</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for s in students %}
-                {% set pct = (s.present_count / s.total_sessions * 100)|round(1) if s.total_sessions > 0 else 0 %}
-                <tr>
-                  <td>{{ s.name }}</td>
-                  <td>{{ s.rollno or '-' }}</td>
-                  <td>{{ s.class_name or '-' }}</td>
-                  <td>
-                    <div class="progress"><span style="width:{{ pct }}%"></span></div>
-                    <div class="muted" style="font-size:12px;margin-top:4px">{{ pct }}%</div>
-                  </td>
-                  <td><span class="badge">{{ 'Good' if pct>=75 else ('Warning' if pct>=50 else 'Critical') }}</span>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div class="metric amber">
+            <div class="label">QR Sessions</div>
+            <div class="value" data-count="{{ stats.sessions }}">{{ stats.sessions }}</div>
+            <div class="icon">📡</div>
           </div>
         </div>
-      </section>
 
-      <section class="tab-pane" data-pane="students">
-        <div class="grid-2" style="margin-bottom:14px">
+        <div class="grid-2" style="margin-bottom:16px">
+          <!-- Attendance donut chart -->
           <div class="panel">
             <div class="panel-head">
-              <h3>Add Student</h3>
+              <h3>Attendance Health Overview</h3>
             </div>
-            <div class="panel-body">
-              <form method="POST" action="/admin/add_user" class="stack">
-                <input type="hidden" name="role" value="student">
-                <input name="name" required placeholder="Full name">
-                <input name="username" required placeholder="Username">
-                <input name="password" required placeholder="Password">
-                <input name="rollno" placeholder="Roll number">
-                <input name="class_name" placeholder="Class name e.g. CSE-Y1">
-                <input name="phone" placeholder="Phone">
-                <button type="submit" class="btn">Add Student</button>
-              </form>
+            <div class="panel-body" style="display:flex;align-items:center;justify-content:center;padding:24px">
+              <canvas id="healthChart" width="260" height="180"></canvas>
             </div>
           </div>
+          <!-- Class breakdown mini chart -->
           <div class="panel">
             <div class="panel-head">
-              <h3>Reset Password</h3>
+              <h3>At-Risk Students</h3>
             </div>
-            <div class="panel-body">
-              <form id="resetStudentForm" method="POST" class="stack" onsubmit="return setResetAction('student')">
-                <select id="resetStudentId" required>
-                  <option value="">Select student</option>
-                  {% for s in students %}<option value="{{ s.id }}">{{ s.name }} ({{ s.rollno or '-' }})</option>{%
-                  endfor %}
-                </select>
-                <input name="new_password" required minlength="6" placeholder="New password">
-                <button class="btn soft" type="submit">Reset Password</button>
-              </form>
+            <div class="panel-body" style="padding:12px">
+              {% set at_risk = [] %}
+              {% for s in students %}
+              {% set pct = (s.present_count / s.total_sessions * 100) | round(1) if s.total_sessions > 0 else 0 %}
+              {% if pct < 75 %}{% set _=at_risk.append(s) %}{% endif %} {% endfor %} {% if at_risk %} <div
+                class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Class</th>
+                      <th>Attendance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for s in at_risk[:8] %}
+                    {% set pct = (s.present_count / s.total_sessions * 100) | round(1) if s.total_sessions > 0 else 0 %}
+                    <tr>
+                      <td><strong>{{ s.name }}</strong></td>
+                      <td class="muted">{{ s.class_name or '—' }}</td>
+                      <td>
+                        <span class="badge {% if pct >= 50 %}warn{% else %}danger{% endif %}">{{ pct }}%</span>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                    {% if at_risk | length > 8 %}
+                    <tr>
+                      <td colspan="3" class="muted" style="text-align:center;font-size:.8rem">+{{ at_risk|length - 8 }}
+                        more — see Reports</td>
+                    </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
             </div>
+            {% else %}
+            <p class="muted" style="text-align:center;padding:20px">🎉 All students above 75% attendance!</p>
+            {% endif %}
           </div>
         </div>
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Students</h3>
-            <input type="text" id="studentSearch" placeholder="Search students"
-              oninput="filterTable('studentSearch','studentsTable')" style="max-width:230px">
-          </div>
-          <div class="table-wrap">
-            <table id="studentsTable">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Roll</th>
-                  <th>Class</th>
-                  <th>Phone</th>
-                  <th>Username</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for s in students %}
-                <tr>
-                  <td>{{ s.name }}</td>
-                  <td>{{ s.rollno or '-' }}</td>
-                  <td>{{ s.class_name or '-' }}</td>
-                  <td>{{ s.phone or '-' }}</td>
-                  <td>{{ s.username }}</td>
-                  <td>
-                    <form method="POST" action="/admin/delete_user/{{ s.id }}"
-                      onsubmit="return confirm('Delete this user?')">
-                      <button class="btn small danger" type="submit">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+  </div>
 
-      <section class="tab-pane" data-pane="teachers">
-        <div class="grid-2" style="margin-bottom:14px">
-          <div class="panel">
-            <div class="panel-head">
-              <h3>Add Faculty</h3>
-            </div>
-            <div class="panel-body">
-              <form method="POST" action="/admin/add_user" class="stack">
-                <input type="hidden" name="role" value="faculty">
-                <input name="name" required placeholder="Faculty name">
-                <input name="username" required placeholder="Username">
-                <input name="password" required placeholder="Password">
-                <input name="class_name" placeholder="Default class assignment">
-                <input name="phone" placeholder="Phone">
-                <button type="submit" class="btn">Add Faculty</button>
-              </form>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-head">
-              <h3>Reset Faculty Password</h3>
-            </div>
-            <div class="panel-body">
-              <form id="resetFacultyForm" method="POST" class="stack" onsubmit="return setResetAction('faculty')">
-                <select id="resetFacultyId" required>
-                  <option value="">Select faculty</option>
-                  {% for f in faculty_list %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
-                </select>
-                <input name="new_password" required minlength="6" placeholder="New password">
-                <button class="btn soft" type="submit">Reset Password</button>
-              </form>
-            </div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Faculty List</h3>
-            <input id="facultySearch" type="text" oninput="filterTable('facultySearch','facultyTable')"
-              placeholder="Search faculty" style="max-width:220px">
-          </div>
-          <div class="table-wrap">
-            <table id="facultyTable">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Username</th>
-                  <th>Class</th>
-                  <th>Phone</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for f in faculty_list %}
-                <tr>
-                  <td>{{ f.name }}</td>
-                  <td>{{ f.username }}</td>
-                  <td>{{ f.class_name or '-' }}</td>
-                  <td>{{ f.phone or '-' }}</td>
-                  <td>
-                    <form method="POST" action="/admin/delete_user/{{ f.id }}"
-                      onsubmit="return confirm('Delete this faculty?')">
-                      <button class="btn small danger" type="submit">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="tab-pane" data-pane="subjects">
-        <div class="grid-2" style="margin-bottom:14px">
-          <div class="panel">
-            <div class="panel-head">
-              <h3>Add Subject</h3>
-            </div>
-            <div class="panel-body">
-              <form method="POST" action="/admin/add_subject" class="stack">
-                <input name="subject" required placeholder="Subject name">
-                <select name="faculty_id" required>
-                  <option value="">Select faculty</option>
-                  {% for f in faculty_list %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
-                </select>
-                <input name="class_name" required placeholder="Class name">
-                <button type="submit" class="btn">Add Subject</button>
-              </form>
-            </div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Subjects</h3>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Subject</th>
-                  <th>Class</th>
-                  <th>Faculty</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for c in classes %}
-                <tr>
-                  <td>{{ c.subject }}</td>
-                  <td>{{ c.class_name }}</td>
-                  <td>{{ c.faculty_name }}</td>
-                  <td>
-                    <form method="POST" action="/admin/delete_subject/{{ c.id }}"
-                      onsubmit="return confirm('Delete this subject and records?')">
-                      <button class="btn small danger" type="submit">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="tab-pane" data-pane="manual">
-        <div class="panel" style="max-width:700px">
-          <div class="panel-head">
-            <h3>Manual Attendance Entry</h3>
-          </div>
-          <div class="panel-body">
-            <form method="POST" action="/admin/manual_attendance" class="stack">
-              <select name="student_id" required>
-                <option value="">Select student</option>
-                {% for s in students %}<option value="{{ s.id }}">{{ s.name }} ({{ s.rollno or '-' }})</option>{% endfor
-                %}
-              </select>
-              <select name="class_id" required>
-                <option value="">Select subject/class</option>
-                {% for c in classes %}<option value="{{ c.id }}">{{ c.subject }} ({{ c.class_name }})</option>{% endfor
-                %}
-              </select>
-              <select name="status">
-                <option value="present">Present</option>
-                <option value="absent">Absent</option>
-              </select>
-              <input type="date" name="session_date" value="{{ '' }}">
-              <button type="submit" class="btn">Submit Manual Entry</button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      <section class="tab-pane" data-pane="import">
-        <div class="panel" style="max-width:760px">
-          <div class="panel-head">
-            <h3>Import Users from CSV</h3>
-          </div>
-          <div class="panel-body stack">
-            <form method="POST" action="/admin/import_csv" enctype="multipart/form-data" class="stack">
-              <select name="role">
-                <option value="student">Import as students</option>
-                <option value="faculty">Import as faculty</option>
-              </select>
-              <input type="file" name="csv_file" accept=".csv" required>
-              <div class="toolbar">
-                <button class="btn" type="submit">Import CSV</button>
-                <button class="btn soft" type="button" onclick="previewCSV()">Preview First Rows</button>
+  <!-- Full health table -->
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Class Health Snapshot</h3>
+      <input type="text" id="overviewSearch" placeholder="Search students…"
+        oninput="filterTable('overviewSearch','overviewTable')" style="max-width:200px">
+    </div>
+    <div class="table-wrap">
+      <table id="overviewTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Roll</th>
+            <th>Class</th>
+            <th>Attendance</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          {% set pct = (s.present_count / s.total_sessions * 100) | round(1) if s.total_sessions > 0 else 0 %}
+          <tr>
+            <td><strong>{{ s.name }}</strong></td>
+            <td class="muted">{{ s.rollno or '—' }}</td>
+            <td>{{ s.class_name or '—' }}</td>
+            <td style="min-width:130px">
+              <div class="progress {% if pct < 50 %}danger{% elif pct < 75 %}warn{% endif %}">
+                <span style="width:{{ pct }}%"></span>
               </div>
-            </form>
-            <div id="csvPreview" class="table-wrap"></div>
-          </div>
-        </div>
-      </section>
+              <small class="muted">{{ pct }}%</small>
+            </td>
+            <td><span class="badge {% if pct >= 75 %}good{% elif pct >= 50 %}warn{% else %}danger{% endif %}">
+                {% if pct >= 75 %}Good{% elif pct >= 50 %}Warning{% else %}Critical{% endif %}
+              </span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="muted" style="text-align:center;padding:20px">No students yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </section>
 
-      <section class="tab-pane" data-pane="reports">
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Attendance Reports</h3>
-          </div>
-          <div class="panel-body" id="reportWrap">Click Reports tab to load live analytics.</div>
+  <!-- ── STUDENTS TAB ──────────────────────────────────────────── -->
+  <section class="tab-pane" data-pane="students">
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Add Student</h3>
         </div>
-      </section>
+        <div class="panel-body">
+          <form method="POST" action="/admin/add_user" class="stack">
+            <input type="hidden" name="role" value="student">
+            <div class="form-group"><label>Full Name</label><input name="name" required placeholder="e.g. Ahmed Khan">
+            </div>
+            <div class="form-group"><label>Username</label><input name="username" required
+                placeholder="e.g. ahmed_khan"></div>
+            <div class="form-group"><label>Password</label><input name="password" required
+                placeholder="Min 6 characters"></div>
+            <div class="form-group"><label>Roll Number</label><input name="rollno" placeholder="e.g. 22B01CS001"></div>
+            <div class="form-group"><label>Class Name</label><input name="class_name" placeholder="e.g. CSE-Y3"></div>
+            <div class="form-group"><label>Phone</label><input name="phone" placeholder="+91 XXXXXXXXXX"></div>
+            <button type="submit" class="btn">➕ Add Student</button>
+          </form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Reset Student Password</h3>
+        </div>
+        <div class="panel-body">
+          <form id="resetStudentForm" method="POST" class="stack" onsubmit="return setResetAction('student')">
+            <div class="form-group">
+              <label>Select Student</label>
+              <select id="resetStudentId" required>
+                <option value="">— pick student —</option>
+                {% for s in students %}<option value="{{ s.id }}">{{ s.name }} ({{ s.rollno or '—' }})</option>{% endfor
+                %}
+              </select>
+            </div>
+            <div class="form-group"><label>New Password</label><input name="new_password" required minlength="6"
+                placeholder="New password"></div>
+            <button class="btn soft" type="submit">🔑 Reset Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h3>All Students ({{ students | length }})</h3>
+        <input type="text" id="studentSearch" placeholder="Search…"
+          oninput="filterTable('studentSearch','studentsTable')" style="max-width:200px">
+      </div>
+      <div class="table-wrap">
+        <table id="studentsTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Roll</th>
+              <th>Class</th>
+              <th>Phone</th>
+              <th>Username</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td><strong>{{ s.name }}</strong></td>
+              <td class="muted">{{ s.rollno or '—' }}</td>
+              <td>{{ s.class_name or '—' }}</td>
+              <td class="muted">{{ s.phone or '—' }}</td>
+              <td class="muted">{{ s.username }}</td>
+              <td>
+                <form method="POST" action="/admin/delete_user/{{ s.id }}"
+                  onsubmit="return confirm('Delete {{ s.name }}?')">
+                  <button class="btn sm danger" type="submit">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="muted" style="text-align:center;padding:20px">No students yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-    </main>
+  <!-- ── FACULTY TAB ───────────────────────────────────────────── -->
+  <section class="tab-pane" data-pane="teachers">
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Add Faculty</h3>
+        </div>
+        <div class="panel-body">
+          <form method="POST" action="/admin/add_user" class="stack">
+            <input type="hidden" name="role" value="faculty">
+            <div class="form-group"><label>Full Name</label><input name="name" required placeholder="e.g. Dr. Ahmed">
+            </div>
+            <div class="form-group"><label>Username</label><input name="username" required placeholder="e.g. dr_ahmed">
+            </div>
+            <div class="form-group"><label>Password</label><input name="password" required
+                placeholder="Min 6 characters"></div>
+            <div class="form-group"><label>Phone</label><input name="phone" placeholder="+91 XXXXXXXXXX"></div>
+            <button type="submit" class="btn">➕ Add Faculty</button>
+          </form>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Reset Faculty Password</h3>
+        </div>
+        <div class="panel-body">
+          <form id="resetFacultyForm" method="POST" class="stack" onsubmit="return setResetAction('faculty')">
+            <div class="form-group">
+              <label>Select Faculty</label>
+              <select id="resetFacultyId" required>
+                <option value="">— pick faculty —</option>
+                {% for f in faculty_list %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group"><label>New Password</label><input name="new_password" required minlength="6"
+                placeholder="New password"></div>
+            <button class="btn soft" type="submit">🔑 Reset Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Faculty List ({{ faculty_list | length }})</h3>
+        <input id="facultySearch" type="text" placeholder="Search…"
+          oninput="filterTable('facultySearch','facultyTable')" style="max-width:200px">
+      </div>
+      <div class="table-wrap">
+        <table id="facultyTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Username</th>
+              <th>Phone</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in faculty_list %}
+            <tr>
+              <td><strong>{{ f.name }}</strong></td>
+              <td class="muted">{{ f.username }}</td>
+              <td class="muted">{{ f.phone or '—' }}</td>
+              <td>
+                <form method="POST" action="/admin/delete_user/{{ f.id }}"
+                  onsubmit="return confirm('Delete {{ f.name }}?')">
+                  <button class="btn sm danger" type="submit">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="muted" style="text-align:center;padding:20px">No faculty added yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SUBJECTS TAB ──────────────────────────────────────────── -->
+  <section class="tab-pane" data-pane="subjects">
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Add Class / Subject</h3>
+        </div>
+        <div class="panel-body">
+          <form method="POST" action="/admin/add_subject" class="stack">
+            <div class="form-group"><label>Subject Name</label><input name="subject" required
+                placeholder="e.g. Artificial Intelligence"></div>
+            <div class="form-group">
+              <label>Assign Faculty</label>
+              <select name="faculty_id" required>
+                <option value="">— select faculty —</option>
+                {% for f in faculty_list %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group"><label>Class Name</label><input name="class_name" required
+                placeholder="e.g. CSE-Y3"></div>
+            <button type="submit" class="btn">➕ Add Subject</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h3>All Classes ({{ classes | length }})</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Class</th>
+              <th>Faculty</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in classes %}
+            <tr>
+              <td><strong>{{ c.subject }}</strong></td>
+              <td>{{ c.class_name }}</td>
+              <td class="muted">{{ c.faculty_name }}</td>
+              <td>
+                <form method="POST" action="/admin/delete_subject/{{ c.id }}"
+                  onsubmit="return confirm('Delete {{ c.subject }} and all its records?')">
+                  <button class="btn sm danger" type="submit">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="muted" style="text-align:center;padding:20px">No classes added yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MANUAL ATTENDANCE TAB ─────────────────────────────────── -->
+  <section class="tab-pane" data-pane="manual">
+    <div class="panel" style="max-width:680px">
+      <div class="panel-head">
+        <h3>✏️ Manual Attendance Entry</h3>
+      </div>
+      <div class="panel-body">
+        <p class="muted" style="margin-bottom:16px">Use this to correct or add attendance records manually.</p>
+        <form method="POST" action="/admin/manual_attendance" class="stack">
+          <div class="form-group">
+            <label>Student</label>
+            <select name="student_id" required>
+              <option value="">— select student —</option>
+              {% for s in students %}<option value="{{ s.id }}">{{ s.name }} ({{ s.rollno or '—' }}) — {{ s.class_name
+                }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Subject / Class</label>
+            <select name="class_id" required>
+              <option value="">— select subject —</option>
+              {% for c in classes %}<option value="{{ c.id }}">{{ c.subject }} ({{ c.class_name }})</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select name="status">
+              <option value="present">✅ Present</option>
+              <option value="absent">❌ Absent</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" name="session_date" value="">
+          </div>
+          <button type="submit" class="btn">Submit Entry</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── IMPORT CSV TAB ────────────────────────────────────────── -->
+  <section class="tab-pane" data-pane="import">
+    <div class="panel" style="max-width:720px">
+      <div class="panel-head">
+        <h3>📥 Import Users from CSV</h3>
+      </div>
+      <div class="panel-body stack">
+        <div class="notice" style="margin-bottom:12px">
+          <strong>Expected columns:</strong> Name, HTNO (or Roll No), Phone No, Email ID, Gender, Date of Birth,
+          class_name, username, password
+        </div>
+        <form method="POST" action="/admin/import_csv" enctype="multipart/form-data" class="stack">
+          <div class="form-group">
+            <label>Import as</label>
+            <select name="role">
+              <option value="student">Students</option>
+              <option value="faculty">Faculty</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>CSV File</label>
+            <input type="file" name="csv_file" accept=".csv" required>
+          </div>
+          <div class="toolbar">
+            <button class="btn" type="submit">📥 Import CSV</button>
+            <button class="btn soft" type="button" onclick="previewCSV()">👁 Preview Rows</button>
+          </div>
+        </form>
+        <div id="csvPreview" class="table-wrap" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── REPORTS TAB ───────────────────────────────────────────── -->
+  <section class="tab-pane" data-pane="reports">
+    <div class="panel">
+      <div class="panel-head">
+        <h3>📈 Attendance Reports</h3>
+        <input type="text" id="reportSearch" placeholder="Search students…"
+          oninput="filterTable('reportSearch','reportTable')" style="max-width:200px">
+      </div>
+      <div class="panel-body" id="reportWrap">
+        <p class="muted" style="text-align:center;padding:20px">Click the <strong>Reports</strong> tab to load live
+          data.</p>
+      </div>
+    </div>
+  </section>
+
+  </main>
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      initTabs('adminTabs', '{{ active_tab or "overview" }}');
-      if ('{{ active_tab }}' === 'reports') { loadReports(); }
-      if ('{{ active_tab }}' && '{{ active_tab }}' !== 'overview') { activateAdminTab('{{ active_tab }}'); }
-    });
-    function activateAdminTab(name) {
-      document.querySelectorAll('#adminTabs [data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-      document.querySelectorAll('#adminTabs [data-pane]').forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+    // ── Tab control ───────────────────────────────────────────────────
+    function activateTab(name) {
+      document.querySelectorAll('#tabNav [data-tab]').forEach(b =>
+        b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('#adminTabs [data-pane]').forEach(p =>
+        p.classList.toggle('active', p.dataset.pane === name));
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const active = '{{ active_tab or "overview" }}';
+      activateTab(active);
+      if (active === 'reports') loadReports();
+
+      // Animated counters
+      document.querySelectorAll('.metric .value[data-count]').forEach(el => {
+        const target = parseInt(el.dataset.count, 10);
+        let cur = 0;
+        const step = Math.max(1, Math.ceil(target / 40));
+        const t = setInterval(() => {
+          cur = Math.min(cur + step, target);
+          el.textContent = cur;
+          if (cur >= target) clearInterval(t);
+        }, 25);
+      });
+
+      // Health chart
+      const canvas = document.getElementById('healthChart');
+      if (canvas) {
+        const students = {{ students | tojson }};
+
+    let good = 0, warn = 0, critical = 0;
+    students.forEach(s => {
+      const pct = s.total_sessions > 0 ? (s.present_count / s.total_sessions * 100) : 0;
+      if (pct >= 75) good++;
+      else if (pct >= 50) warn++;
+      else critical++;
+    });
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Good (\u226575%)', 'Warning (50\u201374%)', 'Critical (<50%)'],
+        datasets: [{
+          data: [good, warn, critical],
+          backgroundColor: ['rgba(16,185,129,.7)', 'rgba(245,158,11,.7)', 'rgba(239,68,68,.7)'],
+          borderColor: ['#10b981', '#f59e0b', '#ef4444'],
+          borderWidth: 2,
+          hoverOffset: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { size: 12 } } }
+        },
+        cutout: '65%',
+      }
+    });
+      }
+    });
+
+    // ── Password reset ────────────────────────────────────────────────
     function setResetAction(type) {
       if (type === 'student') {
         const id = document.getElementById('resetStudentId').value;
@@ -397,34 +581,65 @@
       }
       return true;
     }
+
+    // ── CSV preview ───────────────────────────────────────────────────
     function previewCSV() {
       const form = document.querySelector('section[data-pane="import"] form');
       const file = form.querySelector('input[name="csv_file"]').files[0];
-      if (!file) { alert('Select a CSV first'); return; }
-      const fd = new FormData(); fd.append('csv_file', file);
-      fetch('/admin/preview_csv', { method: 'POST', body: fd }).then(r => r.json()).then(data => {
-        if (data.error) { document.getElementById('csvPreview').innerHTML = '<div class="notice">' + data.error + '</div>'; return; }
-        let html = '<table><thead><tr>' + data.headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>';
-        data.preview.forEach(row => { html += '<tr>' + data.headers.map(h => '<td>' + (row[h] || '') + '</td>').join('') + '</tr>'; });
-        html += '</tbody></table>';
-        document.getElementById('csvPreview').innerHTML = html;
-      });
+      if (!file) { alert('Select a CSV file first'); return; }
+      const fd = new FormData();
+      fd.append('csv_file', file);
+      fetch('/admin/preview_csv', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById('csvPreview').innerHTML = `<div class="notice error">${data.error}</div>`;
+            return;
+          }
+          let html = '<table><thead><tr>' + data.headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+          data.preview.forEach(row => {
+            html += '<tr>' + data.headers.map(h => `<td>${row[h] || ''}</td>`).join('') + '</tr>';
+          });
+          html += '</tbody></table>';
+          document.getElementById('csvPreview').innerHTML = html;
+        });
     }
+
+    // ── Reports loader ────────────────────────────────────────────────
     function loadReports() {
       const wrap = document.getElementById('reportWrap');
-      wrap.innerHTML = 'Loading reports...';
-      fetch('/admin/attendance_report').then(r => r.json()).then(data => {
-        if (!data.length) { wrap.innerHTML = '<div class="notice">No report data available.</div>'; return; }
-        let html = '<div class="table-wrap"><table><thead><tr><th>Student</th><th>Roll</th><th>Class</th><th>Overall</th><th>Subjects</th></tr></thead><tbody>';
-        data.forEach(s => {
-          const p = s.subjects.reduce((a, b) => a + b.present, 0); const t = s.subjects.reduce((a, b) => a + b.total, 0);
-          const pct = t ? Math.round((p / t) * 100) : 0;
-          const subs = s.subjects.map(sub => sub.subject + ': ' + sub.pct + '%').join(' | ');
-          html += '<tr><td>' + s.name + '</td><td>' + s.rollno + '</td><td>' + s.class_name + '</td><td><span class="badge">' + pct + '%</span></td><td style="white-space:normal">' + subs + '</td></tr>';
+      wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px">Loading reports…</p>';
+      fetch('/admin/attendance_report')
+        .then(r => r.json())
+        .then(data => {
+          if (!data.length) {
+            wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px">No report data available.</p>';
+            return;
+          }
+          let html = `<div class="table-wrap"><table id="reportTable">
+        <thead><tr><th>Student</th><th>Roll</th><th>Class</th><th>Overall</th><th>Subjects</th></tr></thead><tbody>`;
+          data.forEach(s => {
+            const p = s.subjects.reduce((a, b) => a + b.present, 0);
+            const tot = s.subjects.reduce((a, b) => a + b.total, 0);
+            const pct = tot ? Math.round((p / tot) * 100) : 0;
+            const cls = pct >= 75 ? 'good' : (pct >= 50 ? 'warn' : 'danger');
+            const subs = s.subjects.map(sub =>
+              `<span class="badge ${sub.pct >= 75 ? 'good' : (sub.pct >= 50 ? 'warn' : 'danger')}">${sub.subject}: ${sub.pct}%</span>`
+            ).join(' ');
+            html += `<tr>
+          <td><strong>${s.name}</strong></td>
+          <td class="muted">${s.rollno}</td>
+          <td>${s.class_name}</td>
+          <td><span class="badge ${cls}">${pct}%</span></td>
+          <td style="white-space:normal;display:flex;flex-wrap:wrap;gap:4px;padding:6px 0">${subs}</td>
+        </tr>`;
+          });
+          html += '</tbody></table></div>';
+          wrap.innerHTML = html;
+        })
+        .catch(() => {
+          wrap.innerHTML = '<div class="notice error">Could not load reports.</div>';
         });
-        html += '</tbody></table></div>';
-        wrap.innerHTML = html;
-      }).catch(() => wrap.innerHTML = '<div class="notice">Could not load reports.</div>');
     }
   </script>
 </body>

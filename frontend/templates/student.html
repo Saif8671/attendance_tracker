@@ -1,79 +1,160 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
-<script defer src="{{ url_for('static', filename='site.js') }}"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendX — Student Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  <script defer src="{{ url_for('static', filename='site.js') }}"></script>
 </head>
+
 <body>
-<div class="shell">
-  <aside class="sidebar" id="appSidebar">
-    <div class="brand"><h1>AttendX</h1><p>Student</p></div>
-    <a class="nav-link active" href="/student">Dashboard</a>
-    <a class="nav-link" href="/student/scanner">Scan QR</a>
-    <a class="logout-link" href="/logout">Logout</a>
-  </aside>
-
-  <main class="main">
-    <div class="page-header">
-      <div>
-        <button id="mobileMenuBtn" class="mobile-toggle" type="button">Menu</button>
-        <h2 class="page-title">My Attendance</h2>
-        <p class="page-subtitle">{{ student.name }} | {{ student.rollno or 'No Roll' }} | {{ student.class_name or 'General' }}</p>
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#7c3aed" />
+        <stop offset="100%" stop-color="#06b6d4" />
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="shell">
+    <aside class="sidebar" id="appSidebar">
+      <div class="brand">
+        <h1>AttendX</h1>
+        <p>Student Portal</p>
       </div>
-      <a class="btn" href="/student/scanner">Open Scanner</a>
-    </div>
+      <a class="nav-link active" href="/student">📊 Dashboard</a>
+      <a class="nav-link" href="/student/scanner">📷 Scan QR</a>
+      <a class="logout-link" href="/logout">🚪 Logout</a>
+    </aside>
 
-    {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <button id="mobileMenuBtn" class="mobile-toggle" type="button">☰ Menu</button>
+          <h2 class="page-title">My Attendance</h2>
+          <p class="page-subtitle">
+            {{ student.name }}
+            {% if student.rollno %} &nbsp;·&nbsp; {{ student.rollno }}{% endif %}
+            {% if student.class_name %} &nbsp;·&nbsp; {{ student.class_name }}{% endif %}
+          </p>
+        </div>
+        <a class="btn" href="/student/scanner">📷 Scan Attendance</a>
+      </div>
 
-    <div class="hero" style="margin-bottom:14px">
-      <h3 style="margin:0 0 8px 0">Session Ready</h3>
-      <p class="muted" style="margin:0">Ask faculty for live QR and scan before it expires.</p>
-    </div>
+      {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}
 
-    <div class="panel" style="margin-bottom:14px">
-      <div class="panel-head"><h3>Subject Overview</h3></div>
-      <div class="panel-body grid-3">
-        {% for a in attendance %}
-        {% set pct = (a.present_count / a.total_sessions * 100)|round(1) if a.total_sessions > 0 else 0 %}
-        <div class="card" style="padding:14px">
-          <h3 style="margin:0 0 4px 0">{{ a.subject }}</h3>
-          <p class="muted" style="margin:0 0 10px 0">{{ a.present_count }} / {{ a.total_sessions }} classes</p>
-          <div class="progress"><span style="width:{{ pct }}%"></span></div>
-          <div style="margin-top:7px;display:flex;justify-content:space-between;align-items:center">
-            <span class="badge">{{ 'Good' if pct>=75 else ('Warning' if pct>=50 else 'Critical') }}</span>
-            <strong>{{ pct }}%</strong>
+      <!-- Overall stat -->
+      {% set total_present = attendance | sum(attribute='present_count') %}
+      {% set total_sessions = attendance | sum(attribute='total_sessions') %}
+      {% set overall_pct = (total_present / total_sessions * 100) | round(1) if total_sessions > 0 else 0 %}
+
+      <div class="hero" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:20px">
+        <!-- Big circle -->
+        <div class="circle-wrap" style="margin:0">
+          <div class="circle" style="width:110px;height:110px">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle class="track" cx="55" cy="55" r="48" stroke-width="9" />
+              <circle class="fill" cx="55" cy="55" r="48" stroke-width="9" stroke="url(#grad)"
+                stroke-dasharray="{{ 2 * 3.14159 * 48 | round(2) }}"
+                stroke-dashoffset="{{ ((1 - overall_pct/100) * 2 * 3.14159 * 48) | round(2) }}" />
+            </svg>
+            <div class="circle-label">{{ overall_pct }}<small>%</small></div>
           </div>
         </div>
-        {% endfor %}
+        <div>
+          <h3 style="font-size:1.3rem;margin-bottom:4px">Overall Attendance</h3>
+          <p class="muted">{{ total_present }} present out of {{ total_sessions }} total sessions</p>
+          <span class="badge {% if overall_pct >= 75 %}good{% elif overall_pct >= 50 %}warn{% else %}danger{% endif %}"
+            style="margin-top:8px">
+            {% if overall_pct >= 75 %}✓ Good Standing{% elif overall_pct >= 50 %}⚠ Below Average{% else %}⚠ Critical —
+            Contact Faculty{% endif %}
+          </span>
+        </div>
       </div>
-    </div>
 
-    <div class="panel">
-      <div class="panel-head">
-        <h3>Recent Attendance</h3>
-        <input type="text" id="historySearch" placeholder="Search history" oninput="filterTable('historySearch','historyTable')" style="max-width:220px">
-      </div>
-      <div class="table-wrap">
-        <table id="historyTable">
-          <thead><tr><th>Date</th><th>Subject</th><th>Session</th><th>Status</th></tr></thead>
-          <tbody>
-            {% for r in recent %}
-            <tr>
-              <td>{{ r.marked_at[:16].replace('T',' ') }}</td>
-              <td>{{ r.subject }}</td>
-              <td>{{ r.session_label or '-' }}</td>
-              <td><span class="badge">{{ r.status|title }}</span></td>
-            </tr>
+      <!-- Subject cards -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-head">
+          <h3>Subject-wise Attendance</h3>
+        </div>
+        <div class="panel-body">
+          {% if attendance %}
+          <div class="grid-3">
+            {% for a in attendance %}
+            {% set pct = (a.present_count / a.total_sessions * 100) | round(1) if a.total_sessions > 0 else 0 %}
+            <div class="card">
+              <h3 style="margin-bottom:4px;font-size:1rem">{{ a.subject }}</h3>
+              <p class="muted" style="font-size:.8rem;margin-bottom:14px">{{ a.class_name }}</p>
+              <!-- Circular progress -->
+              <div class="circle-wrap">
+                <div class="circle">
+                  <svg width="90" height="90" viewBox="0 0 90 90">
+                    <circle class="track" cx="45" cy="45" r="38" stroke-width="8" />
+                    <circle class="fill" cx="45" cy="45" r="38" stroke-width="8" stroke="url(#grad)"
+                      stroke-dasharray="{{ 2 * 3.14159 * 38 | round(2) }}"
+                      stroke-dashoffset="{{ ((1 - pct/100) * 2 * 3.14159 * 38) | round(2) }}" />
+                  </svg>
+                  <div class="circle-label" style="font-size:1rem">{{ pct }}<small>%</small></div>
+                </div>
+              </div>
+              <p class="muted" style="text-align:center;font-size:.8rem;margin-top:8px">{{ a.present_count }}/{{
+                a.total_sessions }} classes</p>
+              <div style="text-align:center;margin-top:8px">
+                <span class="badge {% if pct >= 75 %}good{% elif pct >= 50 %}warn{% else %}danger{% endif %}">
+                  {% if pct >= 75 %}Good{% elif pct >= 50 %}Warning{% else %}Critical{% endif %}
+                </span>
+              </div>
+            </div>
             {% endfor %}
-          </tbody>
-        </table>
+          </div>
+          {% else %}
+          <p class="muted" style="text-align:center;padding:20px">No subjects assigned yet. Contact your admin.</p>
+          {% endif %}
+        </div>
       </div>
-    </div>
-  </main>
-</div>
+
+      <!-- Recent history -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Recent Attendance</h3>
+          <input type="text" id="historySearch" placeholder="Search…"
+            oninput="filterTable('historySearch','historyTable')" style="max-width:200px">
+        </div>
+        <div class="table-wrap">
+          <table id="historyTable">
+            <thead>
+              <tr>
+                <th>Date &amp; Time</th>
+                <th>Subject</th>
+                <th>Session</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recent %}
+              <tr>
+                <td>{{ r.marked_at[:16].replace('T',' ') }}</td>
+                <td>{{ r.subject }}</td>
+                <td>{{ r.session_label or '—' }}</td>
+                <td>
+                  <span class="badge {{ 'present' if r.status == 'present' else 'absent' }}">
+                    {{ r.status | title }}
+                  </span>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="muted" style="text-align:center;padding:20px">No attendance records yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
 </body>
+
 </html>

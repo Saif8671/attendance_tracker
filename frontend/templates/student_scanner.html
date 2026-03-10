@@ -1,47 +1,77 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Scanner</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendX — Scan QR</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
+
 <body>
-<main class="main" style="max-width:760px;margin:0 auto">
-  <div class="page-header">
-    <div>
-      <h2 class="page-title">QR Scanner</h2>
-      <p class="page-subtitle">Scan active faculty session to mark attendance</p>
-    </div>
-    <a class="btn soft" href="/student">Back</a>
-  </div>
+  <div class="scanner-shell">
+    <div class="scanner-card">
+      <h2 style="margin-bottom:6px">📷 Scan Attendance QR</h2>
+      <p class="muted" style="margin-bottom:16px">Point your camera at the QR code shown by your faculty</p>
 
-  <div class="panel" style="padding:16px">
-    <div class="card" style="padding:12px;background:#111;border-color:#111">
-      <video id="video" autoplay playsinline style="width:100%;border-radius:12px;display:none"></video>
-      <canvas id="canvas" style="display:none"></canvas>
-      <div id="placeholder" style="border:1px dashed #555;border-radius:12px;padding:40px;text-align:center;color:#bdbdbd">Camera not started</div>
-    </div>
+      <div id="reader" style="width:100%;max-width:360px;margin:0 auto"></div>
 
-    <div id="status" class="notice" style="margin-top:10px">Press start to scan QR</div>
+      <div id="scanStatus" class="notice" style="margin-top:16px;display:none"></div>
 
-    <div class="toolbar">
-      <button class="btn" id="startBtn" type="button" onclick="toggleCamera()">Start Camera</button>
-      <input id="manualUrl" type="text" placeholder="Paste /scan URL manually">
-      <button class="btn soft" type="button" onclick="manualGo()">Open URL</button>
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn soft" id="stopBtn" onclick="stopScan()" style="display:none">■ Stop Scanner</button>
+        <a class="btn soft" href="/student">← Dashboard</a>
+      </div>
     </div>
   </div>
-</main>
-<script>
-let stream=null, scanning=false, raf=null;
-function setStatus(t){document.getElementById('status').textContent=t;}
-async function toggleCamera(){if(scanning){stopCamera();return;}try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const v=document.getElementById('video');v.srcObject=stream;v.style.display='block';document.getElementById('placeholder').style.display='none';document.getElementById('startBtn').textContent='Stop Camera';scanning=true;setStatus('Scanning...');v.onloadedmetadata=()=>{v.play();scan();};}catch(e){setStatus('Camera access denied. Use manual URL.');}}
-function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}if(raf)cancelAnimationFrame(raf);scanning=false;document.getElementById('video').style.display='none';document.getElementById('video').srcObject=null;document.getElementById('placeholder').style.display='block';document.getElementById('startBtn').textContent='Start Camera';setStatus('Press start to scan QR');}
-function scan(){if(!scanning)return;const v=document.getElementById('video'), c=document.getElementById('canvas');if(v.readyState===v.HAVE_ENOUGH_DATA){c.width=v.videoWidth;c.height=v.videoHeight;const ctx=c.getContext('2d');ctx.drawImage(v,0,0,c.width,c.height);const img=ctx.getImageData(0,0,c.width,c.height);const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});if(code&&code.data.includes('/scan/')){setStatus('QR found. Redirecting...');stopCamera();setTimeout(()=>location.href=code.data,400);return;}}raf=requestAnimationFrame(scan);} 
-function manualGo(){const u=document.getElementById('manualUrl').value.trim();if(!u||!u.includes('/scan/')){alert('Enter a valid AttendX scan URL');return;}location.href=u;}
-window.addEventListener('beforeunload',stopCamera);
-</script>
+
+  <script>
+    let scanner = null;
+
+    function startScan() {
+      scanner = new Html5QrcodeScanner('reader', {
+        fps: 10,
+        qrbox: { width: 260, height: 260 },
+        aspectRatio: 1.0,
+      });
+
+      scanner.render(onSuccess, onError);
+      document.getElementById('stopBtn').style.display = 'inline-flex';
+    }
+
+    function onSuccess(decodedText) {
+      stopScan();
+      const status = document.getElementById('scanStatus');
+      status.style.display = 'block';
+      status.textContent = '⏳ Submitting attendance…';
+
+      // Extract token from URL or use raw text
+      let token = decodedText;
+      try {
+        const u = new URL(decodedText);
+        const parts = u.pathname.split('/');
+        token = parts[parts.length - 1];
+      } catch (e) { }
+
+      window.location.href = '/scan/' + encodeURIComponent(token);
+    }
+
+    function onError(err) {
+      // Suppress continuous errors
+    }
+
+    function stopScan() {
+      if (scanner) {
+        scanner.clear().catch(() => { });
+        scanner = null;
+      }
+      document.getElementById('stopBtn').style.display = 'none';
+    }
+
+    // Auto-start on load
+    window.addEventListener('load', () => startScan());
+  </script>
 </body>
+
 </html>

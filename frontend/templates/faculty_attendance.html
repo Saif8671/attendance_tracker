@@ -1,76 +1,142 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ cls.subject }} Attendance</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
-<script defer src="{{ url_for('static', filename='site.js') }}"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendX — Class Attendance</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  <script defer src="{{ url_for('static', filename='site.js') }}"></script>
 </head>
+
 <body>
-<main class="main" style="max-width:1200px;margin:0 auto">
-  <div class="page-header">
-    <div>
-      <h2 class="page-title">{{ cls.subject }}</h2>
-      <p class="page-subtitle">{{ cls.class_name }} | {{ total }} total sessions</p>
-    </div>
-    <a href="/faculty" class="btn soft">Back</a>
-  </div>
+  <div class="shell">
+    <aside class="sidebar" id="appSidebar">
+      <div class="brand">
+        <h1>AttendX</h1>
+        <p>Faculty Portal</p>
+      </div>
+      <a class="nav-link" href="/faculty">📊 Dashboard</a>
+      <a class="logout-link" href="/logout">🚪 Logout</a>
+    </aside>
 
-  <div class="grid-3" style="margin-bottom:14px">
-    <div class="metric"><div class="label">Students</div><div class="value">{{ students|length }}</div></div>
-    <div class="metric"><div class="label">Closed Sessions</div><div class="value">{{ total }}</div></div>
-    <div class="metric"><div class="label">Class</div><div class="value" style="font-size:24px">{{ cls.class_name }}</div></div>
-  </div>
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <button id="mobileMenuBtn" class="mobile-toggle" type="button">☰ Menu</button>
+          <h2 class="page-title">{{ cls.subject }}</h2>
+          <p class="page-subtitle">{{ cls.class_name }} &nbsp;·&nbsp; {{ total }} completed sessions</p>
+        </div>
+        <a class="btn soft" href="/faculty">← Back</a>
+      </div>
 
-  <div class="panel" style="margin-bottom:14px">
-    <div class="panel-head">
-      <h3>Student Summary</h3>
-      <input id="studentSearch" type="text" placeholder="Search student" oninput="filterTable('studentSearch','studentsTable')" style="max-width:220px">
-    </div>
-    <div class="table-wrap">
-      <table id="studentsTable">
-        <thead><tr><th>Name</th><th>Roll</th><th>Present</th><th>Percent</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for s in students %}
-          {% set pct = (s.present_count / total * 100)|round(1) if total > 0 else 0 %}
-          <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.rollno or '-' }}</td>
-            <td>{{ s.present_count }} / {{ total }}</td>
-            <td>
-              <div class="progress"><span style="width:{{ pct }}%"></span></div>
-              <div class="muted" style="font-size:12px;margin-top:4px">{{ pct }}%</div>
-            </td>
-            <td><span class="badge">{{ 'Good' if pct>=75 else ('Warning' if pct>=50 else 'Critical') }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+      <!-- Stats strip -->
+      <div class="metric-grid" style="margin-bottom:20px">
+        <div class="metric cyan">
+          <div class="label">Total Students</div>
+          <div class="value">{{ students | length }}</div>
+          <div class="icon">🎓</div>
+        </div>
+        <div class="metric violet">
+          <div class="label">Sessions Run</div>
+          <div class="value">{{ total }}</div>
+          <div class="icon">📡</div>
+        </div>
+        <div class="metric emerald">
+          <div class="label">Avg Attendance</div>
+          {% if students and total > 0 %}
+          {% set avg = (students | sum(attribute='present_count') / students | length / total * 100) | round(1) %}
+          {% else %}{% set avg = 0 %}{% endif %}
+          <div class="value">{{ avg }}%</div>
+          <div class="icon">📊</div>
+        </div>
+      </div>
 
-  <div class="panel">
-    <div class="panel-head"><h3>Session Log</h3></div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Session</th><th>Time</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for s in sessions %}
-          <tr>
-            <td>{{ s.session_label }}</td>
-            <td class="session-time" data-ts="{{ s.created_at|int }}">{{ s.created_at|int }}</td>
-            <td><span class="badge">{{ 'Closed' if not s.is_active else 'Active' }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+      <!-- Student attendance table -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-head">
+          <h3>Student Attendance</h3>
+          <input type="text" id="sSearch" placeholder="Search students…" oninput="filterTable('sSearch','sTable')"
+            style="max-width:200px">
+        </div>
+        <div class="table-wrap">
+          <table id="sTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Roll No</th>
+                <th>Present</th>
+                <th>Total</th>
+                <th>Attendance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in students %}
+              {% set pct = (s.present_count / total * 100) | round(1) if total > 0 else 0 %}
+              <tr>
+                <td><strong>{{ s.name }}</strong></td>
+                <td>{{ s.rollno or '—' }}</td>
+                <td>{{ s.present_count }}</td>
+                <td>{{ total }}</td>
+                <td style="min-width:120px">
+                  <div class="progress {% if pct < 50 %}danger{% elif pct < 75 %}warn{% endif %}">
+                    <span style="width:{{ pct }}%"></span>
+                  </div>
+                  <small class="muted">{{ pct }}%</small>
+                </td>
+                <td>
+                  <span class="badge {% if pct >= 75 %}good{% elif pct >= 50 %}warn{% else %}danger{% endif %}">
+                    {% if pct >= 75 %}Good{% elif pct >= 50 %}At Risk{% else %}Critical{% endif %}
+                  </span>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="muted" style="text-align:center;padding:20px">No students in this class.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Session log -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Session Log</h3>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Session Label</th>
+                <th>Started</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sessions %}
+              <tr>
+                <td class="muted">{{ loop.index }}</td>
+                <td>{{ s.session_label or '—' }}</td>
+                <td>{{ s.created_at | int | string }}</td>
+                <td><span class="badge {% if s.is_active %}active{% else %}danger{% endif %}">
+                    {{ '🟢 Live' if s.is_active else '🔴 Closed' }}
+                  </span></td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="muted" style="text-align:center;padding:20px">No sessions recorded.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
   </div>
-</main>
-<script>
-document.querySelectorAll('.session-time').forEach(el=>{const ts=Number(el.dataset.ts||0);if(ts){el.textContent=new Date(ts*1000).toLocaleString();}})
-</script>
 </body>
+
 </html>

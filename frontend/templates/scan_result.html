@@ -1,18 +1,30 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scan Result</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendX — Scan Result</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
 </head>
+
 <body>
-  <div class="center-card" style="text-align:center">
-    <h2 class="page-title" style="margin-top:0">{{ 'Attendance Marked' if success else 'Attendance Not Marked' }}</h2>
-    <p class="page-subtitle">{{ msg }}</p>
-    {% if subject %}<p><strong>{{ subject }}</strong>{% if label %} | {{ label }}{% endif %}</p>{% endif %}
-    <a class="btn" href="/student">Back to Dashboard</a>
+  <div class="result-shell">
+    <div class="result-card">
+      {% if success %}
+      <span class="result-icon">✅</span>
+      <h2 style="color:#6ee7b7;margin-bottom:10px">Attendance Marked!</h2>
+      <p style="font-size:1.05rem;margin-bottom:6px"><strong style="color:var(--text)">{{ subject }}</strong></p>
+      {% if label %}<p class="muted" style="margin-bottom:20px">Session: {{ label }}</p>{% endif %}
+      <div class="notice" style="margin-bottom:20px">Your attendance has been successfully recorded.</div>
+      {% else %}
+      <span class="result-icon">❌</span>
+      <h2 style="color:#fca5a5;margin-bottom:10px">Unable to Mark</h2>
+      <div class="notice error" style="margin-bottom:20px">{{ msg }}</div>
+      {% endif %}
+      <a class="btn full" href="/student">← Back to Dashboard</a>
+    </div>
   </div>
 </body>
+
 </html>

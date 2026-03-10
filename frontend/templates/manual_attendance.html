@@ -1,22 +1,25 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manual Attendance</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendX — Manual Attendance</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
 </head>
+
 <body>
-<main class="main" style="max-width:800px;margin:0 auto">
-  <div class="page-header">
-    <div>
-      <h2 class="page-title">Manual Attendance Entry</h2>
-      <p class="page-subtitle">Legacy page. Use Admin tab for integrated workflow.</p>
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div class="panel" style="max-width:480px;width:100%">
+      <div class="panel-head">
+        <h3>✏️ Manual Attendance Entry</h3>
+      </div>
+      <div class="panel-body">
+        <p class="muted" style="margin-bottom:16px">This page redirects to the Admin dashboard Manual tab.</p>
+        <a class="btn full" href="/admin?tab=manual">Go to Manual Entry →</a>
+      </div>
     </div>
-    <a class="btn soft" href="/admin?tab=manual">Open Admin Manual Tab</a>
   </div>
-  {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}
-</main>
 </body>
+
 </html>
