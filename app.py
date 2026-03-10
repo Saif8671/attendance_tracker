@@ -28,8 +28,9 @@ def create_app():
     # Register gateway routes (e.g., root, health)
     register_gateway(app)
 
-    # Initialize DB schema
-    init_db()
+    # Initialize DB schema with app context
+    with app.app_context():
+        init_db()
 
     return app
 
