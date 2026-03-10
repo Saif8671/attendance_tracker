@@ -1,6 +1,7 @@
-﻿from datetime import datetime
+﻿import os
+from datetime import datetime
 from collections import OrderedDict
-from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify, send_file, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify, send_file, current_app, has_app_context
 import time, secrets, threading
 import qrcode
 from io import BytesIO
@@ -49,10 +50,7 @@ def get_dashboard_data(role):
         ).fetchall()
         return {"student": dict(student), "attendance": attendance, "recent": recent}
 
-    return {}
-
-
-# ---- Admin ----
+    return {}\n\n\ndef _sms_threshold():\n    if has_app_context():\n        return _sms_threshold()\n    return int(os.getenv("SMS_THRESHOLD", "75"))\n\n\n# ---- Admin ----
 
 @crm_bp.route("/admin")
 def dashboard_admin():
@@ -586,7 +584,7 @@ def check_and_notify(student_id, class_id):
     ).fetchone()["c"]
     if total > 0:
         pct = (present / total) * 100
-        if pct < current_app.config["SMS_THRESHOLD"]:
+        if pct < _sms_threshold():
             student = db.execute("SELECT * FROM users WHERE id=%s", (student_id,)).fetchone()
             cls = db.execute("SELECT * FROM classes WHERE id=%s", (class_id,)).fetchone()
             if student and student.get("phone"):
@@ -642,7 +640,7 @@ def notify_absentees(token_id, class_id, class_name, subject):
                     (s["id"], class_id),
                 ).fetchone()["c"]
                 pct = (present / total) * 100
-                if pct < current_app.config["SMS_THRESHOLD"]:
+                if pct < _sms_threshold():
                     send_sms(
                         s["phone"],
                         f"Low Attendance Warning: Dear {s['name']}, your attendance in {subject} is now {pct:.1f}% ({present}/{total} classes). Minimum required: {current_app.config['SMS_THRESHOLD']}%.",
@@ -681,3 +679,5 @@ def close_session():
         daemon=True,
     ).start()
     return jsonify({"ok": True, "already_closed": already_closed})
+
+

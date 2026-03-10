@@ -1,6 +1,19 @@
-﻿import psycopg2
+﻿import os
+import psycopg2
 from psycopg2.extras import DictCursor
-from flask import g, current_app
+from flask import g, current_app, has_app_context
+
+DEFAULT_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:USER%40supabase%408671@db.lnomjnooexjxlrkfgfvk.supabase.co:5432/postgres",
+)
+
+
+def _database_url():
+    if has_app_context():
+        return current_app.config["DATABASE_URL"]
+    return DEFAULT_DATABASE_URL
+
 
 class DbWrapper:
     def __init__(self, conn):
@@ -8,7 +21,7 @@ class DbWrapper:
         self.cur = conn.cursor(cursor_factory=DictCursor)
 
     def execute(self, query, params=None):
-        q = query.replace('?', '%s')
+        q = query.replace("?", "%s")
         self.cur.execute(q, params or ())
         return self
 
@@ -36,22 +49,26 @@ class DbWrapper:
         self.cur.close()
         self.conn.close()
 
+
 def get_db():
-    if 'db' not in g:
-        conn = psycopg2.connect(current_app.config["DATABASE_URL"])
+    if "db" not in g:
+        conn = psycopg2.connect(_database_url())
         conn.autocommit = True
         g.db = DbWrapper(conn)
     return g.db
 
+
 def get_db_standalone():
-    conn = psycopg2.connect(current_app.config["DATABASE_URL"])
+    conn = psycopg2.connect(_database_url())
     conn.autocommit = True
     return DbWrapper(conn)
+
 
 def init_db():
     db = get_db_standalone()
     try:
-        db.executescript("""
+        db.executescript(
+            """
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username VARCHAR(255) UNIQUE NOT NULL,
@@ -90,12 +107,14 @@ def init_db():
             status VARCHAR(50) DEFAULT 'present',
             UNIQUE(student_id, token_id)
         );
-        """)
+        """
+        )
     except Exception:
         pass
 
     try:
-        db.executescript("""
+        db.executescript(
+            """
             CREATE INDEX IF NOT EXISTS idx_users_role       ON users(role);
             CREATE INDEX IF NOT EXISTS idx_users_class      ON users(class_name);
             CREATE INDEX IF NOT EXISTS idx_users_username   ON users(username);
@@ -107,11 +126,13 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_qr_token         ON qr_tokens(token);
             CREATE INDEX IF NOT EXISTS idx_classes_faculty   ON classes(faculty_id);
             CREATE INDEX IF NOT EXISTS idx_classes_classname ON classes(class_name);
-        """)
+        """
+        )
     except Exception:
         pass
 
     import hashlib
+
     pw = lambda p: hashlib.sha256(p.encode()).hexdigest()
     try:
         db.execute(
