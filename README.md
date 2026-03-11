@@ -323,15 +323,13 @@ Open **[http://localhost:5000](http://localhost:5000)** — database initializes
 
 ## 🖼️ Screenshots
 
-| Admin Dashboard | Faculty — QR Generator |
-|---|---|
-| ![Admin](https://via.placeholder.com/440x270/0a0f0a/059669?text=Admin+Dashboard) | ![Faculty](https://via.placeholder.com/440x270/0a0f0a/059669?text=Faculty+QR+View) |
+![attendx_final_verification_fixed_1773168033448](https://github.com/user-attachments/assets/2a79efb8-17ff-4462-987e-72394d0b994f)
+<img width="1365" height="670" alt="Screenshot 2026-03-11 152712" src="https://github.com/user-attachments/assets/cfcabb1a-83d0-4f4d-82dc-5e307f060a7e" />
+<img width="864" height="680" alt="Screenshot 2026-03-11 154012" src="https://github.com/user-attachments/assets/df7b71e5-9215-4c4b-9f20-f4a6649b8508" />
+<img width="1326" height="645" alt="Screenshot 2026-03-11 154516" src="https://github.com/user-attachments/assets/bac0d422-492c-4f52-9a72-9900e902519e" />
+<img width="744" height="531" alt="Screenshot 2026-03-11 154045" src="https://github.com/user-attachments/assets/9aadcc36-13fa-4431-a795-60542f839310" />
 
-| Student — Attendance View | QR Countdown Ring |
-|---|---|
-| ![Student](https://via.placeholder.com/440x270/0a0f0a/059669?text=Student+Dashboard) | ![QR](https://via.placeholder.com/440x270/0a0f0a/059669?text=QR+Countdown) |
 
-*(Replace placeholders with actual screenshots)*
 
 ---
 
