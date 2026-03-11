@@ -3,12 +3,15 @@ AttendX — Attendance Tracker (modular)
 Flask entrypoint wiring blueprints and shared services.
 """
 from flask import Flask, g
+from dotenv import load_dotenv
 
 from api_gateway.routes import register_gateway
 from services.auth.routes import auth_bp
 from services.crm.routes import crm_bp
 from services.shared.config import load_config
 from services.shared.db import init_db
+
+load_dotenv()
 
 app = Flask(
     __name__,

@@ -5,7 +5,7 @@ from flask import g, current_app, has_app_context
 
 DEFAULT_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:USER%40supabase%408671@db.lnomjnooexjxlrkfgfvk.supabase.co:5432/postgres",
+    "postgresql://postgres:haxibejqkxfkH0PN@db.lnomjnooexjxlrkfgfvk.supabase.co:5432/postgres",
 )
 
 
