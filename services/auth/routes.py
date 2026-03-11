@@ -11,6 +11,64 @@ def index():
         return redirect(url_for(f"crm.dashboard_{session['role']}"))
     return render_template("login.html")
 
+@auth_bp.route("/signup", methods=["GET", "POST"])
+def signup():
+    if "user_id" in session:
+        return redirect(url_for(f"crm.dashboard_{session['role']}"))
+
+    if request.method == "GET":
+        return render_template("signup.html", form={})
+
+    role = request.form.get("role", "").strip().lower()
+    name = request.form.get("name", "").strip()
+    username = request.form.get("username", "").strip().lower()
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    class_name = request.form.get("class_name", "").strip()
+    rollno = request.form.get("rollno", "").strip()
+
+    form = {
+        "role": role,
+        "name": name,
+        "username": username,
+        "email": email,
+        "phone": phone,
+        "class_name": class_name,
+        "rollno": rollno,
+    }
+
+    if role not in {"student", "faculty"}:
+        return render_template("signup.html", error="Please choose Student or Faculty", form=form)
+    if not name or not username or not password:
+        return render_template("signup.html", error="Name, username, and password are required", form=form)
+    if password != confirm_password:
+        return render_template("signup.html", error="Passwords do not match", form=form)
+    if role == "student" and not class_name:
+        return render_template("signup.html", error="Class name is required for students", form=form)
+
+    db = get_db()
+    existing = db.execute("SELECT id FROM users WHERE username=%s", (username,)).fetchone()
+    if existing:
+        return render_template("signup.html", error="Username already taken", form=form)
+
+    db.execute(
+        "INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (username, hash_pw(password), role, name, phone, email, "", "", class_name if role == "student" else "", rollno),
+    )
+    db.commit()
+
+    user = db.execute("SELECT * FROM users WHERE username=%s", (username,)).fetchone()
+    if user:
+        session["user_id"] = user["id"]
+        session["role"] = user["role"]
+        session["name"] = user["name"]
+        return redirect(url_for(f"crm.dashboard_{user['role']}"))
+
+    return render_template("signup.html", error="Signup failed. Please try again.", form=form)
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
     username = request.form["username"].strip().lower()

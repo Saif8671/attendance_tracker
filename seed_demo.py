@@ -1,15 +1,14 @@
 """Seed demo faculty1 and student1 users into the database."""
-import sqlite3, hashlib
+from services.shared.db import get_db_standalone
+from services.shared.security import hash_pw
 
-def h(p): return hashlib.sha256(p.encode()).hexdigest()
-
-db = sqlite3.connect("attendance.db")
-db.row_factory = sqlite3.Row
+db = get_db_standalone()
 
 try:
     db.execute(
-        "INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        ("faculty1", h("faculty123"), "faculty", "Demo Faculty", None, None, None, None, None, None)
+        "INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        ("faculty1", hash_pw("faculty123"), "faculty", "Demo Faculty", None, None, None, None, None, None),
     )
     print("faculty1 created")
 except Exception as e:
@@ -17,8 +16,9 @@ except Exception as e:
 
 try:
     db.execute(
-        "INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        ("student1", h("student123"), "student", "Demo Student", None, None, None, None, "CSE-Y3", "STU001")
+        "INSERT INTO users (username,password,role,name,phone,email,gender,dob,class_name,rollno) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        ("student1", hash_pw("student123"), "student", "Demo Student", None, None, None, None, "CSE-Y3", "STU001"),
     )
     print("student1 created")
 except Exception as e:

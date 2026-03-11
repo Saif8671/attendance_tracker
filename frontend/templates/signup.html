@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendX — Sign Up</title>
+<meta name="description" content="Create your AttendX account">
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+</head>
+<body>
+<div class="login-shell">
+
+  <!-- Brand side -->
+  <div class="login-brand">
+    <h1>AttendX</h1>
+    <p style="font-size:1.05rem">Create your account and start tracking attendance</p>
+    <div style="margin-top:48px;display:flex;flex-direction:column;gap:14px;align-items:center;position:relative;z-index:1">
+      <div style="display:flex;align-items:center;gap:10px;color:var(--subtle)">
+        <span style="font-size:1.3rem">🧑‍🏫</span>
+        <span>Faculty generate QR sessions in seconds</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;color:var(--subtle)">
+        <span style="font-size:1.3rem">🎓</span>
+        <span>Students scan to mark attendance instantly</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;color:var(--subtle)">
+        <span style="font-size:1.3rem">📈</span>
+        <span>Track progress and receive alerts</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signup card -->
+  <div class="login-card">
+    <h2>Create account</h2>
+    <p class="subtitle">Register as a student or faculty member</p>
+
+    {% if error %}
+    <div class="notice error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/signup" class="stack">
+      <div class="form-group">
+        <label>Role</label>
+        <select name="role" id="role" required>
+          <option value="">Select a role</option>
+          <option value="student" {% if form.role == 'student' %}selected{% endif %}>Student</option>
+          <option value="faculty" {% if form.role == 'faculty' %}selected{% endif %}>Faculty</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-top:0">
+        <label>Full Name</label>
+        <input type="text" name="name" required placeholder="Enter your full name" value="{{ form.name or '' }}" autocomplete="name">
+      </div>
+
+      <div class="form-group" style="margin-top:0">
+        <label>Username</label>
+        <input type="text" name="username" required placeholder="Choose a username" value="{{ form.username or '' }}" autocomplete="username">
+      </div>
+
+      <div class="form-group" style="margin-top:0">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="Create a password" autocomplete="new-password">
+      </div>
+
+      <div class="form-group" style="margin-top:0">
+        <label>Confirm Password</label>
+        <input type="password" name="confirm_password" required placeholder="Re-enter your password" autocomplete="new-password">
+      </div>
+
+      <div class="form-group" style="margin-top:0">
+        <label>Email (optional)</label>
+        <input type="email" name="email" placeholder="you@example.com" value="{{ form.email or '' }}" autocomplete="email">
+      </div>
+
+      <div class="form-group" style="margin-top:0">
+        <label>Phone (optional)</label>
+        <input type="text" name="phone" placeholder="+1234567890" value="{{ form.phone or '' }}" autocomplete="tel">
+      </div>
+
+      <div class="form-group student-only" style="margin-top:0">
+        <label>Class Name</label>
+        <input type="text" name="class_name" placeholder="e.g., CSE-A" value="{{ form.class_name or '' }}">
+      </div>
+
+      <div class="form-group student-only" style="margin-top:0">
+        <label>Roll No (optional)</label>
+        <input type="text" name="rollno" placeholder="e.g., 42" value="{{ form.rollno or '' }}">
+      </div>
+
+      <button class="btn full lg" type="submit" style="margin-top:6px">Create Account →</button>
+    </form>
+
+    <p class="muted" style="text-align:center;margin-top:24px">
+      Already have an account?
+      <a href="/">Sign in</a>
+    </p>
+  </div>
+</div>
+
+<script>
+function toggleStudentFields() {
+  const role = document.getElementById('role').value;
+  const show = role === 'student';
+  document.querySelectorAll('.student-only').forEach(el => {
+    el.style.display = show ? 'block' : 'none';
+  });
+}
+
+document.getElementById('role').addEventListener('change', toggleStudentFields);
+toggleStudentFields();
+</script>
+</body>
+</html>
