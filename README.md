@@ -135,18 +135,17 @@ AttendX is structured as a **modular monolith** — a single Flask process with 
 │                       CURRENT LAYOUT                            │
 │                                                                 │
 │  attendx/                                                       │
-│  ├── app.py                   ← Flask entry + API Gateway       │
-│  ├── api_gateway/             ← Gateway routes (/health etc.)   │
-│  ├── services/                                                  │
-│  │   ├── auth/                ← Login, logout, password reset   │
-│  │   ├── crm/                 ← QR, attendance, dashboards      │
-│  │   ├── lead_ai/             ← AI/analytics (in progress)      │
-│  │   └── shared/              ← DB, config, security, SMS       │
+│  ├── backend/                 ← Flask logic & services          │
+│  │   ├── app.py               ← Flask entry + API Gateway       │
+│  │   ├── api_gateway/         ← Gateway routes (/health etc.)   │
+│  │   ├── services/            ← Auth, CRM, Lead AI modules      │
+│  │   ├── requirements.txt     ← Backend dependencies            │
+│  │   └── .env                 ← Environment configuration       │
 │  ├── frontend/                                                  │
 │  │   ├── templates/           ← Server-rendered HTML            │
 │  │   └── static/              ← CSS / JS / images               │
-│  ├── attendance.db            ← SQLite (default)                │
-│  └── requirements.txt                                           │
+│  ├── vercel.json              ← Frontend deployment config      │
+│  └── render.yaml              ← Backend deployment blueprint    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -156,9 +155,9 @@ AttendX is structured as a **modular monolith** — a single Flask process with 
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Web Framework** | Flask 2.x | API gateway + server-rendered UI |
-| **Database** | SQLite / supabase | Local dev / production |
-| **ORM / DB Layer** | SQLAlchemy / psycopg2 | Database abstraction |
+| **Web Framework** | Flask 3.x | API gateway + server-rendered UI |
+| **Database** | Supabase (PostgreSQL) | Primary production database |
+| **ORM / DB Layer** | psycopg2 | Database abstraction |
 | **SMS Alerts** | Twilio | Automated attendance notifications |
 | **QR Generation** | qrcode + Pillow | Session token QR images |
 | **Frontend** | HTML + CSS + JS | Server-rendered templates |
@@ -176,7 +175,7 @@ AttendX is structured as a **modular monolith** — a single Flask process with 
 - Python **3.9+**
 - pip
 -  Twilio account for SMS alerts
--  PostgreSQL for production database
+-  Supabase project for production database
 
 ---
 
@@ -192,7 +191,7 @@ cd attendx
 ### Step 2 — Install dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 ---
@@ -200,16 +199,17 @@ pip install -r requirements.txt
 ### Step 3 — Configure environment
 
 ```bash
-cp .env.example .env
+cp backend/.env.example backend/.env
 ```
 
-Open `.env` and fill in your values. See the [Configuration Reference](#-configuration-reference) for all options.
+Open `backend/.env` and fill in your values. See the [Configuration Reference](#-configuration-reference) for all options.
 
 ---
 
 ### Step 4 — Run
 
 ```bash
+cd backend
 python app.py
 ```
 
