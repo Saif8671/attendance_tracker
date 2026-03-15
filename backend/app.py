@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from api_gateway.routes import register_gateway
 from services.auth.routes import auth_bp
 from services.crm.routes import crm_bp
+from services.lead_ai.routes import lead_ai_bp
 from services.shared.config import load_config
 from services.shared.db import init_db
 
@@ -15,8 +16,8 @@ load_dotenv()
 
 app = Flask(
     __name__,
-    template_folder="frontend/templates",
-    static_folder="frontend/static",
+    template_folder="../frontend/templates",
+    static_folder="../frontend/static",
     static_url_path="/static",
 )
 
@@ -35,6 +36,7 @@ def close_db(exc):
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(crm_bp)
+app.register_blueprint(lead_ai_bp)
 register_gateway(app)
 
 with app.app_context():

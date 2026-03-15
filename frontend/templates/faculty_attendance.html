@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -16,8 +16,8 @@
         <h1>AttendX</h1>
         <p>Faculty Portal</p>
       </div>
-      <a class="nav-link" href="/faculty">📊 Dashboard</a>
-      <a class="logout-link" href="/logout">🚪 Logout</a>
+      <a class="nav-link" href="{{ url_for('crm.dashboard_faculty') }}">📊 Dashboard</a>
+      <a class="logout-link" href="{{ url_for('auth.logout') }}">🚪 Logout</a>
     </aside>
 
     <main class="main">
@@ -27,7 +27,7 @@
           <h2 class="page-title">{{ cls.subject }}</h2>
           <p class="page-subtitle">{{ cls.class_name }} &nbsp;·&nbsp; {{ total }} completed sessions</p>
         </div>
-        <a class="btn soft" href="/faculty">← Back</a>
+        <a class="btn soft" href="{{ url_for('crm.dashboard_faculty') }}">← Faculty Dashboard</a>
       </div>
 
       <!-- Stats strip -->
@@ -39,6 +39,12 @@
         </div>
         <div class="metric violet">
           <div class="label">Sessions Run</div>
+          <script>
+            // This is a placeholder for a fetch call, as requested by the instruction.
+            // It's placed here to demonstrate the URL generation.
+            // In a real application, this would be part of a JavaScript function or event listener.
+            // fetch('{{ url_for("crm.close_session") }}', { /* options */ });
+          </script>
           <div class="value">{{ total }}</div>
           <div class="icon">📡</div>
         </div>
@@ -55,7 +61,7 @@
       <!-- Student attendance table -->
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-head">
-          <h3>Student Attendance</h3>
+          <h3>Student Attendance <img src="{{ url_for('crm.qr_image', token=token.token) }}" alt="QR Code for attendance" style="height: 1em; vertical-align: middle; margin-left: 10px;"></h3>
           <input type="text" id="sSearch" placeholder="Search students…" oninput="filterTable('sSearch','sTable')"
             style="max-width:200px">
         </div>

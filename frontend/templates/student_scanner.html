@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -21,7 +21,7 @@
 
       <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn soft" id="stopBtn" onclick="stopScan()" style="display:none">■ Stop Scanner</button>
-        <a class="btn soft" href="/student">← Dashboard</a>
+        <a class="btn full" href="{{ url_for('crm.dashboard_student') }}">← Back to Dashboard</a>
       </div>
     </div>
   </div>
@@ -54,7 +54,7 @@
         token = parts[parts.length - 1];
       } catch (e) { }
 
-      window.location.href = '/scan/' + encodeURIComponent(token);
+      window.location.href = '{{ url_for("crm.scan_qr", token="") }}' + encodeURIComponent(token);
     }
 
     function onError(err) {

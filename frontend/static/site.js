@@ -1,20 +1,24 @@
-﻿/* AttendX site.js — Tabs, mobile menu, table filter, toasts, counters */
+/* AttendX site.js — Tabs, mobile menu, table filter, toasts, counters */
 'use strict';
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
-function initTabs(containerId, activeTab) {
+function initTabs(containerId, storageKey) {
   const c = document.getElementById(containerId);
   if (!c) return;
   const buttons = c.querySelectorAll('[data-tab]');
   const panes   = c.querySelectorAll('[data-pane]');
 
   function activate(name) {
+    if (!name) return;
     buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     panes.forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+    if (storageKey) localStorage.setItem(storageKey, name);
   }
 
   buttons.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
-  activate(activeTab || (buttons[0] && buttons[0].dataset.tab) || 'overview');
+  
+  const saved = storageKey ? localStorage.getItem(storageKey) : null;
+  activate(saved || (buttons[0] && buttons[0].dataset.tab) || 'overview');
 }
 
 // ── Mobile sidebar ───────────────────────────────────────────────────────────

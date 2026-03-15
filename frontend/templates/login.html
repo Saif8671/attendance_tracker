@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -39,7 +39,7 @@
     <div class="notice error">{{ error }}</div>
     {% endif %}
 
-    <form method="POST" action="/login" class="stack">
+    <form method="POST" action="{{ url_for('auth.login') }}" class="stack">
       <div class="form-group">
         <label>Username</label>
         <input type="text" name="username" id="username" required placeholder="Enter your username" autocomplete="username">
@@ -59,7 +59,7 @@
     </div>
 
     <p class="muted" style="text-align:center;margin-top:18px">
-      New here? <a href="/signup">Create an account</a>
+      New here? <a href="{{ url_for('auth.signup') }}">Create an account</a>
     </p>
   </div>
 </div>

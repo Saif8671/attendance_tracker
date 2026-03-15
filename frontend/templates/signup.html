@@ -39,7 +39,7 @@
     <div class="notice error">{{ error }}</div>
     {% endif %}
 
-    <form method="POST" action="/signup" class="stack">
+    <form method="POST" action="{{ url_for('auth.signup') }}" class="stack">
       <div class="form-group">
         <label>Role</label>
         <select name="role" id="role" required>
@@ -94,7 +94,7 @@
 
     <p class="muted" style="text-align:center;margin-top:24px">
       Already have an account?
-      <a href="/">Sign in</a>
+      <a href="{{ url_for('auth.index') }}">Sign in</a>
     </p>
   </div>
 </div>
@@ -113,3 +113,4 @@ toggleStudentFields();
 </script>
 </body>
 </html>
+

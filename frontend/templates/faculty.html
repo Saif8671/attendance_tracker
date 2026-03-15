@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -16,9 +16,9 @@
         <h1>AttendX</h1>
         <p>Faculty Portal</p>
       </div>
-      <a class="nav-link active" href="/faculty">📊 Dashboard</a>
+      <a class="nav-link active" href="{{ url_for('crm.dashboard_faculty') }}">📊 Dashboard</a>
       <a class="nav-link" href="#sessions">📋 Recent Sessions</a>
-      <a class="logout-link" href="/logout">🚪 Logout</a>
+      <a class="logout-link" href="{{ url_for('auth.logout') }}">🚪 Logout</a>
     </aside>
 
     <main class="main">
@@ -64,12 +64,12 @@
             <div class="card">
               <h3 style="margin-bottom:4px;font-size:1.05rem">{{ cls.subject }}</h3>
               <p class="muted" style="font-size:.82rem;margin-bottom:16px">{{ cls.class_name }}</p>
-              <form method="POST" action="/faculty/generate_qr" style="margin-bottom:10px">
+              <form method="POST" action="{{ url_for('crm.generate_qr') }}" style="margin-bottom:10px">
                 <input type="hidden" name="class_id" value="{{ cls.id }}">
                 <input type="text" name="label" placeholder="Session label (optional)" style="margin-bottom:8px">
                 <button class="btn full" type="submit">📡 Start QR Session</button>
               </form>
-              <a class="btn soft full" href="/faculty/attendance/{{ cls.id }}">📋 View Attendance</a>
+              <a class="btn soft full" href="{{ url_for('crm.faculty_attendance', class_id=cls.id) }}">📋 View Attendance</a>
             </div>
             {% endfor %}
           </div>
@@ -114,7 +114,7 @@
                 </td>
                 <td>
                   {% if active %}
-                  <a class="btn sm" href="/qr/{{ t.token }}">Open QR</a>
+                  <a class="btn sm" href="{{ url_for('crm.show_qr', token=t.token) }}">Open QR</a>
                   {% else %}
                   <span class="muted">Closed</span>
                   {% endif %}

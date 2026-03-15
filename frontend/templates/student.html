@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -24,9 +24,9 @@
         <h1>AttendX</h1>
         <p>Student Portal</p>
       </div>
-      <a class="nav-link active" href="/student">📊 Dashboard</a>
-      <a class="nav-link" href="/student/scanner">📷 Scan QR</a>
-      <a class="logout-link" href="/logout">🚪 Logout</a>
+      <a class="nav-link active" href="{{ url_for('crm.dashboard_student') }}">📊 Dashboard</a>
+      <a class="nav-link" href="{{ url_for('crm.student_scanner') }}">📷 Scan QR</a>
+      <a class="logout-link" href="{{ url_for('auth.logout') }}">🚪 Logout</a>
     </aside>
 
     <main class="main">
@@ -40,7 +40,7 @@
             {% if student.class_name %} &nbsp;·&nbsp; {{ student.class_name }}{% endif %}
           </p>
         </div>
-        <a class="btn" href="/student/scanner">📷 Scan Attendance</a>
+        <a class="btn" href="{{ url_for('crm.student_scanner') }}">📷 Scan Attendance</a>
       </div>
 
       {% if msg %}<div class="notice">{{ msg.replace('+',' ') }}</div>{% endif %}

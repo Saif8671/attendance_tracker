@@ -23,8 +23,9 @@
       <a class="nav-link" href="#" onclick="activateTab('subjects');return false;">📚 Classes</a>
       <a class="nav-link" href="#" onclick="activateTab('manual');return false;">✏️ Manual Entry</a>
       <a class="nav-link" href="#" onclick="activateTab('import');return false;">📥 Import CSV</a>
-      <a class="nav-link" href="#" onclick="activateTab('reports');loadReports();return false;">📈 Reports</a>
-      <a class="logout-link" href="/logout">🚪 Logout</a>
+      <a class="nav-link" href="#" onclick="activateTab('reports');return false;">📈 Reports</a>
+      <a class="nav-link" href="#" onclick="activateTab('ai');return false;">🤖 AI Insights</a>
+      <a class="logout-link" href="{{ url_for('auth.logout') }}">🚪 Logout</a>
     </aside>
 
     <main class="main" id="adminTabs">
@@ -53,7 +54,8 @@
         <button class="tab-btn" data-tab="subjects">Classes</button>
         <button class="tab-btn" data-tab="manual">Manual</button>
         <button class="tab-btn" data-tab="import">Import CSV</button>
-        <button class="tab-btn" data-tab="reports" onclick="loadReports()">Reports</button>
+        <button class="tab-btn" data-tab="reports">Reports</button>
+        <button class="tab-btn" data-tab="ai">AI Insights</button>
       </div>
 
       <!-- ── OVERVIEW TAB ──────────────────────────────────────────── -->
@@ -191,7 +193,7 @@
           <h3>Add Student</h3>
         </div>
         <div class="panel-body">
-          <form method="POST" action="/admin/add_user" class="stack">
+          <form method="POST" action="{{ url_for('crm.add_user') }}" class="stack">
             <input type="hidden" name="role" value="student">
             <div class="form-group"><label>Full Name</label><input name="name" required placeholder="e.g. Ahmed Khan">
             </div>
@@ -254,7 +256,7 @@
               <td class="muted">{{ s.phone or '—' }}</td>
               <td class="muted">{{ s.username }}</td>
               <td>
-                <form method="POST" action="/admin/delete_user/{{ s.id }}"
+                <form method="POST" action="{{ url_for('crm.delete_user', user_id=s.id) }}"
                   onsubmit="return confirm('Delete {{ s.name }}?')">
                   <button class="btn sm danger" type="submit">Delete</button>
                 </form>
@@ -279,7 +281,7 @@
           <h3>Add Faculty</h3>
         </div>
         <div class="panel-body">
-          <form method="POST" action="/admin/add_user" class="stack">
+          <form method="POST" action="{{ url_for('crm.add_user') }}" class="stack">
             <input type="hidden" name="role" value="faculty">
             <div class="form-group"><label>Full Name</label><input name="name" required placeholder="e.g. Dr. Ahmed">
             </div>
@@ -335,7 +337,7 @@
               <td class="muted">{{ f.username }}</td>
               <td class="muted">{{ f.phone or '—' }}</td>
               <td>
-                <form method="POST" action="/admin/delete_user/{{ f.id }}"
+                <form method="POST" action="{{ url_for('crm.delete_user', user_id=f.id) }}"
                   onsubmit="return confirm('Delete {{ f.name }}?')">
                   <button class="btn sm danger" type="submit">Delete</button>
                 </form>
@@ -360,7 +362,7 @@
           <h3>Add Class / Subject</h3>
         </div>
         <div class="panel-body">
-          <form method="POST" action="/admin/add_subject" class="stack">
+          <form method="POST" action="{{ url_for('crm.add_subject') }}" class="stack">
             <div class="form-group"><label>Subject Name</label><input name="subject" required
                 placeholder="e.g. Artificial Intelligence"></div>
             <div class="form-group">
@@ -398,7 +400,7 @@
               <td>{{ c.class_name }}</td>
               <td class="muted">{{ c.faculty_name }}</td>
               <td>
-                <form method="POST" action="/admin/delete_subject/{{ c.id }}"
+                <form method="POST" action="{{ url_for('crm.delete_subject', class_id=c.id) }}"
                   onsubmit="return confirm('Delete {{ c.subject }} and all its records?')">
                   <button class="btn sm danger" type="submit">Delete</button>
                 </form>
@@ -423,7 +425,7 @@
       </div>
       <div class="panel-body">
         <p class="muted" style="margin-bottom:16px">Use this to correct or add attendance records manually.</p>
-        <form method="POST" action="/admin/manual_attendance" class="stack">
+        <form method="POST" action="{{ url_for('crm.manual_attendance_submit') }}" class="stack">
           <div class="form-group">
             <label>Student</label>
             <select name="student_id" required>
@@ -467,7 +469,7 @@
           <strong>Expected columns:</strong> Name, HTNO (or Roll No), Phone No, Email ID, Gender, Date of Birth,
           class_name, username, password
         </div>
-        <form method="POST" action="/admin/import_csv" enctype="multipart/form-data" class="stack">
+        <form method="POST" action="{{ url_for('crm.import_csv') }}" enctype="multipart/form-data" class="stack">
           <div class="form-group">
             <label>Import as</label>
             <select name="role">
@@ -498,8 +500,19 @@
           oninput="filterTable('reportSearch','reportTable')" style="max-width:200px">
       </div>
       <div class="panel-body" id="reportWrap">
-        <p class="muted" style="text-align:center;padding:20px">Click the <strong>Reports</strong> tab to load live
-          data.</p>
+        <p class="muted" style="text-align:center;padding:20px">Loading live data…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── AI INSIGHTS TAB ────────────────────────────────────────── -->
+  <section class="tab-pane" data-pane="ai">
+    <div class="panel">
+      <div class="panel-head">
+        <h3>🤖 AttendX AI Insights</h3>
+      </div>
+      <div class="panel-body" id="aiContent">
+        <p class="muted" style="text-align:center;padding:20px">Initializing AI engine…</p>
       </div>
     </div>
   </section>
@@ -510,16 +523,30 @@
   <script>
     // ── Tab control ───────────────────────────────────────────────────
     function activateTab(name) {
-      document.querySelectorAll('#tabNav [data-tab]').forEach(b =>
-        b.classList.toggle('active', b.dataset.tab === name));
-      document.querySelectorAll('#adminTabs [data-pane]').forEach(p =>
-        p.classList.toggle('active', p.dataset.pane === name));
+      const b = document.querySelector(`#tabNav [data-tab="${name}"]`);
+      if (b) b.click();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      const active = '{{ active_tab or "overview" }}';
-      activateTab(active);
-      if (active === 'reports') loadReports();
+      // Use site.js initTabs with callback for specific logic
+      initTabs('adminTabs', 'attendx_admin_tab');
+      
+      // Hook into tab changes for special loaders
+      const tabNav = document.getElementById('tabNav');
+      if(tabNav) {
+        tabNav.querySelectorAll('[data-tab]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            if (tab === 'reports') loadReports();
+            if (tab === 'ai') loadAI();
+          });
+        });
+        
+        // Initial load for active tab
+        const current = localStorage.getItem('attendx_admin_tab') || 'overview';
+        if (current === 'reports') loadReports();
+        if (current === 'ai') loadAI();
+      }
 
       // Animated counters
       document.querySelectorAll('.metric .value[data-count]').forEach(el => {
@@ -536,10 +563,11 @@
       // Health chart
       const canvas = document.getElementById('healthChart');
       if (canvas) {
-        const students = {{ students | tojson }};
+        // Use a descriptive name to avoid lint conflict with global/local scope
+        const studentList = {{ students | tojson }};
 
     let good = 0, warn = 0, critical = 0;
-    students.forEach(s => {
+    studentList.forEach(s => {
       const pct = s.total_sessions > 0 ? (s.present_count / s.total_sessions * 100) : 0;
       if (pct >= 75) good++;
       else if (pct >= 50) warn++;
@@ -589,7 +617,7 @@
       if (!file) { alert('Select a CSV file first'); return; }
       const fd = new FormData();
       fd.append('csv_file', file);
-      fetch('/admin/preview_csv', { method: 'POST', body: fd })
+      fetch('{{ url_for("crm.preview_csv") }}', { method: 'POST', body: fd })
         .then(r => r.json())
         .then(data => {
           if (data.error) {
@@ -609,11 +637,11 @@
     function loadReports() {
       const wrap = document.getElementById('reportWrap');
       wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px">Loading reports…</p>';
-      fetch('/admin/attendance_report')
+      fetch('{{ url_for("crm.attendance_report") }}')
         .then(r => r.json())
         .then(data => {
-          if (!data.length) {
-            wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px">No report data available.</p>';
+          if (!data || !data.length) {
+            wrap.innerHTML = '<p class="muted" style="text-align:center;padding:20px">No students or attendance records found yet.</p>';
             return;
           }
           let html = `<div class="table-wrap"><table id="reportTable">
@@ -637,8 +665,36 @@
           html += '</tbody></table></div>';
           wrap.innerHTML = html;
         })
+        .catch(err => {
+          console.error(err);
+          wrap.innerHTML = '<div class="notice error">Failed to fetch report data. Check server logs.</div>';
+        });
+    }
+
+    // ── AI Insights loader ────────────────────────────────────────────
+    function loadAI() {
+      const el = document.getElementById('aiContent');
+      el.innerHTML = '<p class="muted" style="text-align:center;padding:20px">Consulting AttendX AI…</p>';
+      fetch('{{ url_for("lead_ai.ai_status") }}')
+        .then(r => r.json())
+        .then(d => {
+           el.innerHTML = `
+             <div class="panel-body stack">
+               <div class="metric cyan" style="margin-bottom:16px">
+                 <div class="label">AI Engine Status</div>
+                 <div class="value">${d.status.toUpperCase()}</div>
+                 <div class="icon">🤖</div>
+               </div>
+               <p style="font-size:1.05rem"><strong>${d.engine}</strong></p>
+               <p class="muted">${d.message}</p>
+               <div class="notice" style="margin-top:12px;opacity:0.8">
+                 💡 Tip: AI insights improve as more students scan QR codes daily.
+               </div>
+             </div>
+           `;
+        })
         .catch(() => {
-          wrap.innerHTML = '<div class="notice error">Could not load reports.</div>';
+           el.innerHTML = '<div class="notice error">AI service is currently unreachable.</div>';
         });
     }
   </script>
