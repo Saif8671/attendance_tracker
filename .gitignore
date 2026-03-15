@@ -1,9 +1,9 @@
 # Environment & secrets
-.env
+backend/.env
 seed_students.csv
 
 # Database
-attendance.db
+backend/attendance.db
 
 # Python
 __pycache__/
