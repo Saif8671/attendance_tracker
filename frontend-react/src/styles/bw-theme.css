@@ -1,0 +1,217 @@
+﻿:root {
+  --bw-bg: #f4f4f4;
+  --bw-surface: #ffffff;
+  --bw-border: #d9d9d9;
+  --bw-border-strong: #bdbdbd;
+  --bw-text: #111111;
+  --bw-muted: #555555;
+  --bw-soft: #f0f0f0;
+  --bw-black: #000000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bw-bg) !important;
+  color: var(--bw-text) !important;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif !important;
+}
+
+h1, h2, h3, h4, .page-title, .brand h2, .subject, .stat-val {
+  font-family: "Space Grotesk", "Segoe UI", sans-serif !important;
+  color: var(--bw-black) !important;
+  letter-spacing: 0 !important;
+}
+
+.sidebar,
+.main,
+.card,
+.section,
+.sec,
+.subject-card,
+.class-card,
+.form-card,
+.preview-card,
+.session-list-card,
+.manual-box,
+.tips,
+.modal,
+.conf-box,
+.student-badge,
+.scan-cta,
+.drop-zone,
+.toast,
+.status-strip,
+.cam-placeholder,
+.cam-box,
+[class*="panel"],
+[class*="box"] {
+  background: var(--bw-surface) !important;
+  border-color: var(--bw-border) !important;
+  color: var(--bw-text) !important;
+  box-shadow: none !important;
+}
+
+table th,
+table td,
+.meta,
+.page-sub,
+.subtitle,
+.class-info,
+.status-text,
+.info-label,
+.tip,
+.label,
+.timer-label,
+.brand-role,
+.stat-lbl,
+.field label,
+.nav-sep,
+.logout,
+.nav-item,
+.back-link,
+.back,
+p {
+  color: var(--bw-muted) !important;
+}
+
+a,
+.nav-item.active,
+.nav-item:hover,
+.logout:hover,
+.back-link:hover,
+.back:hover,
+.url-input-row button,
+.btn,
+.btn-primary,
+.btn-gen,
+.btn-login,
+.btn-success,
+.btn-err {
+  color: #ffffff !important;
+}
+
+.btn,
+.btn-primary,
+.btn-gen,
+.btn-login,
+.btn-success,
+.btn-err,
+.url-input-row button,
+.btn-start,
+.btn-submit,
+#bulkYes {
+  background: var(--bw-black) !important;
+  border: 1px solid var(--bw-black) !important;
+}
+
+.btn-ghost,
+.btn-view,
+.btn-danger,
+.btn-stop,
+.nav-item,
+.logout,
+.tab,
+.status-btn,
+.back-link,
+.back {
+  background: var(--bw-soft) !important;
+  border: 1px solid var(--bw-border) !important;
+  color: var(--bw-text) !important;
+}
+
+.tab.active,
+.nav-item.active,
+.nav-item:hover,
+.logout:hover {
+  background: #e8e8e8 !important;
+  border-color: var(--bw-border-strong) !important;
+}
+
+input,
+select,
+textarea {
+  background: #ffffff !important;
+  color: var(--bw-black) !important;
+  border: 1px solid var(--bw-border) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: #000000 !important;
+  box-shadow: 0 0 0 1px #000000 !important;
+}
+
+.badge,
+.badge-active,
+.badge-expired,
+.badge-pending,
+.badge-present,
+.badge-absent,
+.bg,
+.by,
+.br,
+.bp,
+.g,
+.w,
+.r {
+  background: #efefef !important;
+  color: #111111 !important;
+  border: 1px solid #d5d5d5 !important;
+}
+
+.pbar,
+.pct-bar,
+.bar-track,
+.ring-bg {
+  background: #dddddd !important;
+  stroke: #dddddd !important;
+}
+
+.pfill,
+.pct-fill,
+.bar-fill,
+.ring-fill,
+.scan-line,
+.dot,
+.pulse-dot {
+  background: #000000 !important;
+  stroke: #000000 !important;
+  box-shadow: none !important;
+}
+
+.logo-icon,
+.brand-icon,
+.avatar {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+.orb,
+.bg-orbs,
+.status-indicator .dot,
+.expired-overlay .x {
+  filter: grayscale(1) !important;
+}
+
+@media (max-width: 920px) {
+  .sidebar {
+    width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    position: static !important;
+  }
+
+  .main {
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
+
+  body {
+    display: block !important;
+  }
+}
