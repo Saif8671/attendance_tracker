@@ -1,16 +1,16 @@
 """
-AttendX — Attendance Tracker (modular)
-Flask entrypoint wiring blueprints and shared services.
+AttendX — Attendance Tracker (Simplified)
+Flask entrypoint wiring everything in a flat, professional structure.
 """
+import os
 from flask import Flask, g
 from dotenv import load_dotenv
 
-from api_gateway.routes import register_gateway
-from services.auth.routes import auth_bp
-from services.crm.routes import crm_bp
-from services.lead_ai.routes import lead_ai_bp
-from services.shared.config import load_config
-from services.shared.db import init_db
+from config import load_config
+from db.database import init_db, get_db
+from routes.auth import auth_bp
+from routes.crm import crm_bp
+from routes.api import api_bp
 
 load_dotenv()
 
@@ -22,7 +22,8 @@ app = Flask(
 )
 
 load_config(app)
-
+app.config["DB_INIT_DONE"] = False
+app.config["DB_INIT_ATTEMPTED"] = False
 
 @app.teardown_appcontext
 def close_db(exc):
@@ -33,16 +34,22 @@ def close_db(exc):
         except Exception:
             pass
 
-
 app.register_blueprint(auth_bp)
 app.register_blueprint(crm_bp)
-app.register_blueprint(lead_ai_bp)
-register_gateway(app)
+app.register_blueprint(api_bp)
 
-with app.app_context():
-    init_db()
-
+@app.before_request
+def ensure_db_initialized():
+    if app.config.get("DB_INIT_DONE") or app.config.get("DB_INIT_ATTEMPTED"):
+        return
+    app.config["DB_INIT_ATTEMPTED"] = True
+    try:
+        init_db()
+        app.config["DB_INIT_DONE"] = True
+    except Exception:
+        app.logger.exception("Database initialization failed")
 
 if __name__ == "__main__":
-    print("\nAttendX running at http://localhost:5000")
-    app.run(debug=True, port=5000)
+    port = int(os.getenv("PORT", 5000))
+    print(f"\nAttendX running at http://localhost:{port}")
+    app.run(debug=True, port=port)
