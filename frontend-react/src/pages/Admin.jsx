@@ -1,5 +1,10 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../api.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
 
 export default function Admin() {
   const [tab, setTab] = useState('overview');
@@ -256,10 +261,52 @@ export default function Admin() {
           <div className="grid-2" style={{ marginBottom: 16 }}>
             <div className="panel">
               <div className="panel-head">
-                <h3>Attendance Health Overview</h3>
+                <h3>Attendance Health Distribution</h3>
               </div>
-              <div className="panel-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                <div className="notice">Chart placeholder (hook Chart.js to /api/admin/dashboard if needed)</div>
+              <div className="panel-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, minHeight: 250 }}>
+                {students.length > 0 ? (
+                  <div style={{ width: '100%', maxWidth: '250px' }}>
+                    <Doughnut 
+                      data={{
+                        labels: ['Good (>=75%)', 'Warning (50-74%)', 'Critical (<50%)'],
+                        datasets: [{
+                          data: [
+                            students.filter(s => (s.total_sessions ? (s.present_count / s.total_sessions) * 100 : 0) >= 75).length,
+                            students.filter(s => {
+                              const pct = s.total_sessions ? (s.present_count / s.total_sessions) * 100 : 0;
+                              return pct >= 50 && pct < 75;
+                            }).length,
+                            students.filter(s => (s.total_sessions ? (s.present_count / s.total_sessions) * 100 : 0) < 50).length
+                          ],
+                          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                          borderColor: 'rgba(255, 255, 255, 0.1)',
+                          borderWidth: 2,
+                        }]
+                      }}
+                      options={{
+                        cutout: '65%',
+                        plugins: {
+                          legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', font: { size: 10 }, usePointStyle: true, padding: 15 }
+                          },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) => {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const val = context.raw;
+                                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                                return ` ${context.label}: ${val} students (${pct}%)`;
+                              }
+                            }
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="notice">No data available</div>
+                )}
               </div>
             </div>
             <div className="panel">
