@@ -1,9 +1,12 @@
 import time
 import secrets
 import threading
+import qrcode
+from io import BytesIO
 from datetime import datetime
 from collections import OrderedDict
-from flask import Blueprint, jsonify, request, session, current_app
+from functools import lru_cache
+from flask import Blueprint, jsonify, request, session, current_app, send_file
 
 from db.database import get_db
 from utils.security import hash_pw
@@ -500,6 +503,21 @@ def api_scan(token):
             (session["user_id"], t["class_id"], t["id"], datetime.now().isoformat(), "present"),
         )
         db.commit()
+        check_and_notify(session["user_id"], t["class_id"])
         return jsonify({"success": True, "msg": f"Attendance marked for {t['subject']}!", "subject": t["subject"], "label": t["session_label"]})
     except Exception:
         return jsonify({"success": False, "msg": "Attendance already marked for this session."}), 400
+
+@lru_cache(maxsize=128)
+def _generate_qr_bytes(scan_url):
+    img = qrcode.make(scan_url)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return buf.getvalue()
+
+@api_bp.route("/qr_image/<token>")
+def qr_image(token):
+    scan_url = request.host_url + f"scan/{token}"
+    data = _generate_qr_bytes(scan_url)
+    return send_file(BytesIO(data), mimetype="image/png", max_age=300)
