@@ -1,10 +1,13 @@
 ﻿import React from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function ScanResult() {
-  const success = true;
-  const subject = 'Data Structures';
-  const label = 'Week 6';
-  const msg = 'Session expired or already marked.';
+  const location = useLocation();
+  const state = location.state || {};
+  const success = state.success === true;
+  const subject = state.subject || '';
+  const label = state.label || '';
+  const msg = state.msg || 'Session expired or already marked.';
 
   return (
     <div className="result-shell">
