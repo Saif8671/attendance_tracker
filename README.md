@@ -68,15 +68,14 @@ The project follows a **flatter, professional modular structure** to ensure low 
 ```text
 attendance_tracker/
 ├── backend/                    
-│   ├── app.py                  # Main Entry Point
+│   ├── app.py                  # API Server Entry Point
 │   ├── config.py               # Centralized Configuration
 │   ├── db/                     # Data Layer (PostgreSQL)
-│   ├── routes/                 # Consolidated API Blueprints
+│   ├── routes/                 # Consolidated API Blueprint (api.py)
 │   ├── utils/                  # Shared Business Logic & Helpers
 │   ├── .env                    # Environment Secrets
 │   └── requirements.txt        # Core Dependencies
-├── frontend/                   # Legacy Server-Rendered UI
-└── frontend-react/             # Modern React Frontend (In Development)
+└── frontend-react/             # Modern React Frontend
 ```
 
 ---
@@ -85,40 +84,33 @@ attendance_tracker/
 
 | Layer | Technology |
 |---|---|
-| **Core** | Flask 3.x (Python 3.9+) |
+| **API** | Flask 3.x (Python 3.9+) |
 | **Database** | Supabase / PostgreSQL |
 | **Messaging** | Twilio SMS API |
 | **Visuals** | QR Code Generation Engine (Pillow) |
-| **Frontend** | React / Tailwind (Modern) |
+| **Frontend** | React / Tailwind / Vite |
 | **Server** | Gunicorn (Multi-worker) |
 
 ---
 
 ## ⚡ Quick Start
 
-### 1. Prerequisites
-- Python 3.9+ installed.
-- (Optional) Twilio account for SMS notifications.
-
-### 2. Setup
-```bash
-# Clone the repository
-git clone https://github.com/Saif8671/attendance_tracker.git
-cd attendance_tracker
-
-# Install Backend Dependencies
-pip install -r backend/requirements.txt
-
-# Configure Environment
-cp backend/.env.example backend/.env
-```
-
-### 3. Launch
+### 1. Backend Setup
 ```bash
 cd backend
+pip install -r requirements.txt
+cp .env.example .env
 python app.py
 ```
-Visit **[http://localhost:5000](http://localhost:5000)**. The database will initialize automatically.
+API runs at **[http://localhost:5000](http://localhost:5000)**.
+
+### 2. Frontend Setup
+```bash
+cd frontend-react
+npm install
+npm run dev
+```
+Visit **[http://localhost:5173](http://localhost:5173)**.
 
 ---
 

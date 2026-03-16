@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, request, session, current_app
 from db.database import get_db
 from utils.security import hash_pw
 from utils.helpers import get_dashboard_data
-from routes.crm import notify_absentees
+from utils.notify import notify_absentees, check_and_notify
 
 api_bp = Blueprint("api", __name__)
 

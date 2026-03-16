@@ -8,18 +8,12 @@ from dotenv import load_dotenv
 
 from config import load_config
 from db.database import init_db, get_db
-from routes.auth import auth_bp
-from routes.crm import crm_bp
 from routes.api import api_bp
+from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(
-    __name__,
-    template_folder="../frontend/templates",
-    static_folder="../frontend/static",
-    static_url_path="/static",
-)
+app = Flask(__name__)
 
 load_config(app)
 app.config["DB_INIT_DONE"] = False
@@ -34,8 +28,6 @@ def close_db(exc):
         except Exception:
             pass
 
-app.register_blueprint(auth_bp)
-app.register_blueprint(crm_bp)
 app.register_blueprint(api_bp)
 
 @app.before_request
