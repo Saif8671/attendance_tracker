@@ -8,11 +8,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const fill = (u, p) => {
-    setUsername(u);
-    setPassword(p);
-  };
-
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -87,13 +82,6 @@ export default function Login() {
           </div>
           <button className="btn full lg" type="submit" style={{ marginTop: 6 }}>Sign In →</button>
         </form>
-
-        <p className="muted" style={{ textAlign: 'center', marginTop: 24, marginBottom: 10 }}>Quick demo access</p>
-        <div className="role-pills">
-          <button className="role-pill" onClick={() => fill('admin', 'admin123')} type="button">🔒 Admin</button>
-          <button className="role-pill" onClick={() => fill('faculty1', 'faculty123')} type="button">👨‍🏫 Faculty</button>
-          <button className="role-pill" onClick={() => fill('student1', 'student123')} type="button">🎓 Student</button>
-        </div>
 
         <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>
           New here? <a href="/signup">Create an account</a>

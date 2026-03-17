@@ -71,11 +71,11 @@ class InMemoryStore:
             if self._users:
                 return
 
-            admin = self.create_user("admin", "admin123", "admin", full_name="Administrator")
-            faculty = self.create_user("faculty1", "faculty123", "faculty", full_name="Faculty Member")
+            admin = self.create_user("admin", "admin", "admin", full_name="Administrator")
+            faculty = self.create_user("faculty1", "faculty1", "faculty", full_name="Faculty Member")
             student = self.create_user(
                 "student1",
-                "student123",
+                "student1",
                 "student",
                 full_name="Student One",
                 class_name="CSE-A",

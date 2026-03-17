@@ -117,9 +117,9 @@ If your backend is not running on `http://127.0.0.1:5000`, set `VITE_BACKEND_URL
 ## 🔐 Credentials (Local Demo)
 | Role | Username | Password |
 |---|---|---|
-| Administrator | `admin` | `admin123` |
-| Faculty | `faculty1` | `faculty123` |
-| Student | `student1` | `student123` |
+| Administrator | `admin` | `admin` |
+| Faculty | `faculty1` | `faculty1` |
+| Student | `student1` | `student1` |
 
 ---
 
