@@ -4,10 +4,6 @@
 backend/.env
 seed_students.csv
 
-# Database
-backend/*.db
-backend/*.sqlite3
-
 # Python
 __pycache__/
 *.pyc

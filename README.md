@@ -12,7 +12,6 @@
 
 <img src="https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white"/>
 <img src="https://img.shields.io/badge/Flask-3.x-000000?style=flat-square&logo=flask&logoColor=white"/>
-<img src="https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?style=flat-square&logo=postgresql&logoColor=white"/>
 <img src="https://img.shields.io/badge/Twilio-SMS-F22F46?style=flat-square&logo=twilio&logoColor=white"/>
 <img src="https://img.shields.io/badge/License-MIT-059669?style=flat-square"/>
 
@@ -37,7 +36,7 @@ AttendX is a high-performance attendance tracking system that eliminates the fri
 | ❌ Zero Visibility | 📊 Real-time dashboards with analytics |
 | 🐌 Time Wastage | ⏱️ 2-minute auto-expiring QR sessions |
 | 📭 Late Awareness | 📲 Automated SMS alerts for low attendance |
-| 🗄️ Static Data | ☁️ Cloud-ready PostgreSQL integration |
+| 🗄️ Static Data | ⚡ In-memory store (no external persistence) |
 
 ---
 
@@ -70,7 +69,6 @@ attendance_tracker/
 ├── backend/                    
 │   ├── app.py                  # API Server Entry Point
 │   ├── config.py               # Centralized Configuration
-│   ├── db/                     # Data Layer (PostgreSQL)
 │   ├── routes/                 # Consolidated API Blueprint (api.py)
 │   ├── utils/                  # Shared Business Logic & Helpers
 │   ├── .env                    # Environment Secrets
@@ -85,7 +83,6 @@ attendance_tracker/
 | Layer | Technology |
 |---|---|
 | **API** | Flask 3.x (Python 3.9+) |
-| **Database** | Supabase / PostgreSQL |
 | **Messaging** | Twilio SMS API |
 | **Visuals** | QR Code Generation Engine (Pillow) |
 | **Frontend** | React / Tailwind / Vite |
@@ -114,7 +111,6 @@ Visit **[http://localhost:5173](http://localhost:5173)**.
 
 If your backend is not running on `http://127.0.0.1:5000`, set `VITE_BACKEND_URL` in `frontend-react/.env` (see `frontend-react/.env.example`).
 
-If your database already has tables named `profiles`, `classes`, etc. from another project, set `DB_SCHEMA` in `backend/.env` (default is `attendx`) to isolate AttendX tables.
 
 ---
 
