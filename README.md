@@ -112,6 +112,8 @@ npm run dev
 ```
 Visit **[http://localhost:5173](http://localhost:5173)**.
 
+If your backend is not running on `http://127.0.0.1:5000`, set `VITE_BACKEND_URL` in `frontend-react/.env` (see `frontend-react/.env.example`).
+
 ---
 
 ## 🔐 Credentials (Local Demo)
