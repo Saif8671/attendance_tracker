@@ -1,4 +1,5 @@
 import os
+import re
 import psycopg2
 from psycopg2.extras import DictCursor
 from flask import g, current_app, has_app_context
@@ -7,6 +8,37 @@ def _database_url():
     if has_app_context():
         return current_app.config.get("DATABASE_URL")
     return os.getenv("DATABASE_URL")
+
+_SCHEMA_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+def _db_schema():
+    if has_app_context():
+        schema = current_app.config.get("DB_SCHEMA") or "attendx"
+    else:
+        schema = os.getenv("DB_SCHEMA") or "attendx"
+    schema = str(schema).strip()
+    if not schema:
+        schema = "attendx"
+    if not _SCHEMA_RE.match(schema):
+        raise ValueError("Invalid DB_SCHEMA (must be a simple identifier, e.g. attendx)")
+    return schema
+
+def _configure_connection(conn):
+    """
+    Ensure we use an app-specific schema to avoid colliding with existing tables
+    (e.g. `public.classes` from another project).
+    """
+    schema = _db_schema()
+    conn.autocommit = True
+    cur = conn.cursor()
+    try:
+        try:
+            cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
+            cur.execute(f'SET search_path TO "{schema}", public')
+        except Exception:
+            cur.execute("SET search_path TO public")
+    finally:
+        cur.close()
 
 class DbWrapper:
     def __init__(self, conn):
@@ -45,13 +77,13 @@ class DbWrapper:
 def get_db():
     if "db" not in g:
         conn = psycopg2.connect(_database_url())
-        conn.autocommit = True
+        _configure_connection(conn)
         g.db = DbWrapper(conn)
     return g.db
 
 def get_db_standalone():
     conn = psycopg2.connect(_database_url())
-    conn.autocommit = True
+    _configure_connection(conn)
     return DbWrapper(conn)
 
 def init_db():
@@ -59,11 +91,10 @@ def init_db():
     try:
         # 1. Extensions and core tables
         db.executescript("""
-        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
         CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
         CREATE TABLE IF NOT EXISTS profiles (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             role VARCHAR(50) NOT NULL CHECK (role IN ('student', 'faculty', 'admin')),
             full_name VARCHAR(255) NOT NULL,
             username VARCHAR(255) UNIQUE NOT NULL,
@@ -75,14 +106,14 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS departments (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             name VARCHAR(255) NOT NULL,
             code VARCHAR(50) NOT NULL UNIQUE,
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
 
         CREATE TABLE IF NOT EXISTS subjects (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
             name VARCHAR(255) NOT NULL,
             code VARCHAR(50) NOT NULL UNIQUE,
@@ -92,7 +123,7 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS classes (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
             section VARCHAR(50) NOT NULL DEFAULT 'A',
             semester INT NOT NULL CHECK (semester BETWEEN 1 AND 8),
@@ -124,7 +155,7 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS faculty_assignments (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             faculty_id UUID NOT NULL REFERENCES faculty_profiles(id) ON DELETE CASCADE,
             class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
             subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
@@ -133,7 +164,7 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS sessions (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             assignment_id UUID NOT NULL REFERENCES faculty_assignments(id) ON DELETE CASCADE,
             session_date DATE NOT NULL,
             start_time TIME NOT NULL,
@@ -146,7 +177,7 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS qr_tokens (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
             token TEXT NOT NULL UNIQUE,
             expires_at TIMESTAMPTZ NOT NULL,
@@ -155,7 +186,7 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS attendance_records (
-            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
             student_id UUID NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
             qr_token_id UUID REFERENCES qr_tokens(id) ON DELETE SET NULL,
@@ -199,6 +230,6 @@ def init_db():
 
     except Exception as e:
         print(f"DB Init Error: {e}")
+        raise
     finally:
         db.close()
-

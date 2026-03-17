@@ -45,6 +45,7 @@ def ensure_db_initialized():
         app.config["DB_INIT_DONE"] = True
     except Exception:
         app.logger.exception("Database initialization failed")
+        app.config["DB_INIT_ATTEMPTED"] = False
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))

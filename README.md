@@ -114,6 +114,8 @@ Visit **[http://localhost:5173](http://localhost:5173)**.
 
 If your backend is not running on `http://127.0.0.1:5000`, set `VITE_BACKEND_URL` in `frontend-react/.env` (see `frontend-react/.env.example`).
 
+If your database already has tables named `profiles`, `classes`, etc. from another project, set `DB_SCHEMA` in `backend/.env` (default is `attendx`) to isolate AttendX tables.
+
 ---
 
 ## 🔐 Credentials (Local Demo)
