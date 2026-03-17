@@ -304,6 +304,10 @@ class InMemoryStore:
         with self._lock:
             return len(self._attendance_by_token.get(str(token_id), {}))
 
+    def get_marked_at(self, *, token_id: str, student_id: str) -> Optional[float]:
+        with self._lock:
+            return self._attendance_by_token.get(str(token_id), {}).get(str(student_id))
+
     def student_present_count_for_class(self, *, student_id: str, class_id: str) -> int:
         student_id = str(student_id)
         class_id = str(class_id)
@@ -319,4 +323,3 @@ class InMemoryStore:
         class_id = str(class_id)
         with self._lock:
             return sum(1 for t in self._tokens_by_id.values() if t.class_id == class_id and not t.is_active)
-
